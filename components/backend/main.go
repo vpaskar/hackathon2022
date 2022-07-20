@@ -195,17 +195,73 @@ func getSub(w http.ResponseWriter, r *http.Request) {
 }
 
 func putSub(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from URI
+	namespace := mux.Vars(r)["ns"]
+	name := mux.Vars(r)["name"]
 
+	// Fetch data from request body
+	var newSubData SubscriptionData
+	err := json.NewDecoder(r.Body).Decode(&newSubData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Initialize a subscription object
+	newSub := &eventingv1alpha1.Subscription{
+		Spec: eventingv1alpha1.SubscriptionSpec{
+			Sink:   newSubData.Sink,
+			Filter: &eventingv1alpha1.BEBFilters{},
+		},
+	}
+	newSub.Kind = "Subscription"
+	newSub.APIVersion = "eventing.kyma-project.io/v1alpha1"
+	newSub.Name = name
+	newSub.Namespace = namespace
+
+	for _, eventType := range newSubData.Types {
+		eventFilter := &eventingv1alpha1.BEBFilter{
+			EventSource: &eventingv1alpha1.Filter{
+				Property: "source",
+				Type:     "exact",
+				Value:    "",
+			},
+			EventType: &eventingv1alpha1.Filter{
+				Property: "type",
+				Type:     "exact",
+				Value:    eventType,
+			},
+		}
+
+		newSub.Spec.Filter.Filters = append(newSub.Spec.Filter.Filters, eventFilter)
+	}
+
+	// Create subscription on the k8s cluster
+	_, err = subscriptionClient.UpdateSubscription(*newSub)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func delSub(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	if vars["ns"] == "" {
-		vars["ns"] = "default"
+	// Fetch data from URI
+	namespace := mux.Vars(r)["ns"]
+	name := mux.Vars(r)["name"]
+
+	// Delete subscription
+	err := subscriptionClient.DeleteSubscription(name, namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	log.Printf("request to delete subscription %v in namespace %v", vars["name"], vars["ns"])
-	//todo
+
+	w.WriteHeader(http.StatusOK)
 }
+
 func postFuncs(w http.ResponseWriter, r *http.Request) {
 
 }

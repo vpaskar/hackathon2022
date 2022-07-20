@@ -3,6 +3,8 @@ package subscription
 import (
 	"context"
 	"encoding/json"
+	"k8s.io/client-go/util/retry"
+	"log"
 
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -92,6 +94,55 @@ func (c Client) CreateSubscription(sub eventingv1alpha1.Subscription) (*unstruct
 	}
 	return result, nil
 }
+
+// UpdateSubscription updates an existing kyma subscriptions in specified namespace
+// or returns an error if it fails for any reason
+func (c Client) UpdateSubscription(sub eventingv1alpha1.Subscription) (*unstructured.Unstructured, error) {
+
+	mapInterfaceSub, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&sub)
+	if err != nil {
+		return nil, err
+	}
+
+	retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		// Retrieve the latest version of Deployment before attempting update
+		// RetryOnConflict uses exponential backoff to avoid exhausting the apiserver
+		result, getErr := c.GetSubJson(sub.Name, sub.Namespace)
+		if getErr != nil {
+			log.Printf("failed to get latest version of subscription: %v", getErr)
+			return err
+		}
+
+		if err := unstructured.SetNestedField(result.Object, mapInterfaceSub["spec"], "spec"); err != nil {
+			return err
+		}
+
+		_, updateErr := c.client.Resource(GroupVersionResource()).Namespace(sub.Namespace).Update(context.Background(), result, metav1.UpdateOptions{})
+		return updateErr
+	})
+
+	if retryErr != nil {
+		return nil, err
+	}
+
+	return c.GetSubJson(sub.Name, sub.Namespace)
+}
+
+// DeleteSubscription deletes the kyma subscription in specified namespace
+// or returns an error if it fails for any reason
+func (c Client) DeleteSubscription(name, namespace string) error {
+
+	deletePolicy := metav1.DeletePropagationForeground
+	deleteOptions := metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}
+	if err := c.client.Resource(GroupVersionResource()).Namespace(namespace).Delete(context.TODO(), name, deleteOptions); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 
 // GroupVersionResource returns the GVR for Subscription resource
 func GroupVersionResource() schema.GroupVersionResource {
