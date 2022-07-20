@@ -1,0 +1,21 @@
+{
+  "backendEndpoint": "",
+  "subscription": {
+    "create": "/api/subscriptions/create",
+    "read": "/api/subscriptions/read",
+    "update": "/api/subscriptions/update",
+    "delete": "/api/subscriptions/delete"
+  },
+  "function": {
+    "create": "/api/functions/create",
+    "read": "/api/functions/read",
+    "update": "/api/functions/update",
+    "delete": "/api/functions/delete"
+  },
+  "log": {
+    "read": "/api/logs/read"
+  },
+  "publisher": {
+    "publish": "/api/publisher/publish"
+  }
+}

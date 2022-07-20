@@ -2,7 +2,7 @@ import * as React from "react";
 import { Routes, Route } from "react-router-dom";
 import KubeconfigReader from "../kubeconfigReader/kubeconfigReader";
 import Editor from "../editor/editor";
-import About from "../welcome/about";
+import About from "../about/about";
 
 function App() {
     return (

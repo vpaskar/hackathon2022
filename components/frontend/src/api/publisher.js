@@ -1,13 +1,19 @@
-// todo add event publisher
+const {getBackendPath, getRoutes} = require("../config/config");
+const ApiClient = require("./client");
+const backendPath = getBackendPath()
+const routes = getRoutes();
+const apiClient = new ApiClient();
 
-function publish(){
+class Publisher {
+    publishEvent(data) {
+        const createPath = backendPath + "/" + this.getPublisherRoutes().publish
+        return apiClient.post(createPath, data)
+    }
+
+    getPublisherRoutes() {
+        return routes.publisher
+    }
 
 }
 
-function assembleLegacyEvent(){
-
-}
-
-function assembleCloudEvent(){
-
-}
+export default Publisher;
