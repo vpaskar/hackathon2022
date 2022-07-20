@@ -13,6 +13,9 @@
     "delete": "/api/functions/delete",
     "list": "api/functions"
   },
+  "kubeConfig": {
+    "set": "api/kubeConfig/set"
+  },
   "log": {
     "read": "/api/logs/read"
   },
