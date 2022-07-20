@@ -1,5 +1,4 @@
 {
-  "backendEndpoint": "",
   "subscription": {
     "create": "/api/subscriptions/create",
     "read": "/api/subscriptions/read",

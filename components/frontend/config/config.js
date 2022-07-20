@@ -5,7 +5,7 @@ function getRoutes(){
 }
 
 function getBackendPath(){
-    return routesConfig.backendEndpoint
+    return process.env.BACKEND_HOST
 }
 
 module.exports =  {
