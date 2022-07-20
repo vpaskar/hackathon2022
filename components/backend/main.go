@@ -69,8 +69,8 @@ func handleRequests() {
 	r.HandleFunc("/{ns}/funcs/{name}", putFuncs).Methods("PUT")
 	r.HandleFunc("/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
-	log.Fatal(http.ListenAndServe(":8000", r))
 	log.Printf("Server listening on port 8000 ...")
+	log.Fatal(http.ListenAndServe(":8000", r))
 }
 
 func commonMiddleware(next http.Handler) http.Handler {
