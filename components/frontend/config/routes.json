@@ -1,17 +1,17 @@
 {
   "subscription": {
-    "create": "/api/subscriptions/create",
-    "read": "/api/subscriptions/read",
-    "update": "/api/subscriptions/update",
-    "delete": "/api/subscriptions/delete",
-    "list": "api/subscriptions"
+    "create": "/api/{ns}/subs/{name}",
+    "read": "/api/{ns}/subs/{name}",
+    "update": "/api/{ns}/subs/{name}",
+    "delete": "/api/{ns}/subs/{name}",
+    "list": "/api/subs"
   },
   "function": {
-    "create": "/api/functions/create",
-    "read": "/api/functions/read",
-    "update": "/api/functions/update",
-    "delete": "/api/functions/delete",
-    "list": "api/functions"
+    "create": "/api/{ns}/funcs/{name}",
+    "read": "/api/{ns}/funcs/{name}",
+    "update": "/api/{ns}/funcs/{name}",
+    "delete": "/api/{ns}/funcs/{name}",
+    "list": "api/funcs"
   },
   "kubeConfig": {
     "set": "api/kubeConfig/set"

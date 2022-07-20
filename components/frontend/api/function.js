@@ -6,33 +6,59 @@ const apiClient = new ApiClient();
 
 class Function {
     create(data) {
-        const createPath = backendPath + "/" + this.getFunctionRoutes().create
-        return apiClient.post(createPath, data)
+        this.validateData(data)
+        return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
     }
 
-    read(name, namespace) {
-        const readPath = backendPath + "/" + this.getFunctionRoutes().read + "/" + namespace + "/" + name
-        return apiClient.get(readPath)
+    read(namespace, name) {
+        return apiClient.get(this.getReadEndpoint(namespace, name))
     }
 
     update(name, namespace, data) {
-        const updatePath = backendPath + "/" + this.getFunctionRoutes().update + "/" + namespace + "/" + name
-        return apiClient.put(updatePath, data)
-
+        this.validateData(data)
+        return apiClient.put(this.getUpdateEndpoint(data.namespace, data.name), data)
     }
 
-    remove(name, namespace) {
-        const deletePath = backendPath + "/" + this.getFunctionRoutes().delete + "/" + namespace + "/" + name
-        return apiClient.del(deletePath)
+    remove(namespace, name) {
+        return apiClient.del(this.getRemoveEndpoint(namespace, name))
     }
 
     list() {
-        const listPath = backendPath + "/" + this.getFunctionRoutes().list
-        return apiClient.del(listPath)
+        return apiClient.get(this.getListEndpoint())
+    }
+
+    validateData(data) {
+        const message = "Function validation failed: "
+        if (!data.runtime) {
+            throw new Error(message + 'runtime is missing')
+        }
+        if (!data.sourceCode) {
+            throw new Error(message + 'sourceCode is missing')
+        }
     }
 
     getFunctionRoutes() {
-        return routes.function
+        return routes.Function
+    }
+
+    getCreateEndpoint(namespace, name) {
+        return backendPath + "/" + this.getFunctionRoutes().create.replace("{ns}", namespace).replace("{name}", name)
+    }
+
+    getReadEndpoint(namespace, name) {
+        return backendPath + "/" + this.getFunctionRoutes().read.replace("{ns}", namespace).replace("{name}", name)
+    }
+
+    getUpdateEndpoint(namespace, name) {
+        return backendPath + "/" + this.getFunctionRoutes().update.replace("{ns}", namespace).replace("{name}", name)
+    }
+
+    getRemoveEndpoint(namespace, name) {
+        return backendPath + "/" + this.getFunctionRoutes().delete.replace("{ns}", namespace).replace("{name}", name)
+    }
+
+    getListEndpoint() {
+        return backendPath + "/" + this.getFunctionRoutes().create
     }
 }
 
