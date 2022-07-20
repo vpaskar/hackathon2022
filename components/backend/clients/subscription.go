@@ -7,6 +7,7 @@ import (
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -45,6 +46,26 @@ func (c Client) ListJson(namespace string) (*unstructured.UnstructuredList, erro
 		return nil, err
 	}
 	return subscriptionsUnstructured, nil
+}
+
+// CreateSubscription creates a new kyma subscriptions in specified namespace
+// or returns an error if it fails for any reason
+func (c Client) CreateSubscription(sub eventingv1alpha1.Subscription) (*unstructured.Unstructured, error) {
+
+	mapInterfaceSub, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&sub)
+	if err != nil {
+		return nil, err
+	}
+
+	unstructuredSub := &unstructured.Unstructured{
+		Object: mapInterfaceSub,
+	}
+
+	result, err := c.client.Resource(GroupVersionResource()).Namespace(sub.Namespace).Create(context.Background(), unstructuredSub, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // GroupVersionResource returns the GVR for Subscription resource
