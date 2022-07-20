@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
-
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
@@ -18,7 +17,6 @@ import (
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 )
 
-
 //var Functions []xyz.Function //crud
 //logs //get
 //cloudevents //get
@@ -26,8 +24,8 @@ import (
 var subscriptionClient subscription.Client
 
 type SubscriptionData struct {
-	Sink string `json:"sink"`
-	Types  []string `json:"types"`
+	Sink  string   `json:"sink"`
+	Types []string `json:"types"`
 }
 
 func main() {
@@ -35,7 +33,7 @@ func main() {
 	if home := homedir.HomeDir(); home != "" && false {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		kubeconfig = flag.String("kubeconfig", "/Users/faizan/kubeconfigs/kubeconfig--kymatunas--fzn-b1.yml", "absolute path to the kubeconfig file")
+		kubeconfig = flag.String("kubeconfig", "/Users/I549741/Downloads/kubeconfig.yaml", "absolute path to the kubeconfig file")
 	}
 
 	flag.Parse()
@@ -62,14 +60,14 @@ func handleRequests() {
 
 	r.HandleFunc("/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/subs", getAllSubs).Methods("GET")
-	r.HandleFunc("{ns}/subs/{name}", getSub).Methods("GET")
-	r.HandleFunc("{ns}/subs/{name}", putSub).Methods("PUT")
-	r.HandleFunc("{ns}/subs/{name}", delSub).Methods("DELETE")
+	r.HandleFunc("/{ns}/subs/{name}", getSub).Methods("GET")
+	r.HandleFunc("/{ns}/subs/{name}", putSub).Methods("PUT")
+	r.HandleFunc("/{ns}/subs/{name}", delSub).Methods("DELETE")
 
-	r.HandleFunc("{ns}/funcs/{name}", postFuncs).Methods("POST")
-	r.HandleFunc("{ns}/funcs/{name}", getFuncs).Methods("GET")
-	r.HandleFunc("{ns}/funcs/{name}", putFuncs).Methods("PUT")
-	r.HandleFunc("{ns}/funcs/{name}", delFuncs).Methods("DELETE")
+	r.HandleFunc("/{ns}/funcs/{name}", postFuncs).Methods("POST")
+	r.HandleFunc("/{ns}/funcs/{name}", getFuncs).Methods("GET")
+	r.HandleFunc("/{ns}/funcs/{name}", putFuncs).Methods("PUT")
+	r.HandleFunc("/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8000", r))
 	log.Printf("Server listening on port 8000 ...")
@@ -83,19 +81,9 @@ func commonMiddleware(next http.Handler) http.Handler {
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
-	namespace := "default"
-	// Fetch namespace info from the query parameters
-	v := r.URL.Query()
-	if v.Get("ns") == "-A" {
-		namespace = ""
-	} else if v.Get("ns") != "" {
-		namespace = v.Get("ns")
-	}
-
-	// Get subscriptions from the k8s cluster
-	subsUnstructured, err := subscriptionClient.ListJson(namespace)
+	subsUnstructured, err := subscriptionClient.ListJson("tunas-testing")
 	if err != nil {
-		log.Printf("%s %s failed: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -103,13 +91,13 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	// Convert response to bytes
 	subsBytes, err := subsUnstructured.MarshalJSON()
 	if err != nil {
-		log.Printf("%s %s failed to marchal json: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
 	}
 
 	// Return response to user
 	_, err = w.Write(subsBytes)
 	if err != nil {
-		log.Printf("%s %s failed to write response: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
 	}
 }
 
@@ -129,7 +117,7 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 	// Initialize a subscription object
 	newSub := &eventingv1alpha1.Subscription{
 		Spec: eventingv1alpha1.SubscriptionSpec{
-			Sink: newSubData.Sink,
+			Sink:   newSubData.Sink,
 			Filter: &eventingv1alpha1.BEBFilters{},
 		},
 	}
@@ -142,13 +130,13 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 		eventFilter := &eventingv1alpha1.BEBFilter{
 			EventSource: &eventingv1alpha1.Filter{
 				Property: "source",
-				Type: "exact",
-				Value: "",
+				Type:     "exact",
+				Value:    "",
 			},
 			EventType: &eventingv1alpha1.Filter{
 				Property: "type",
-				Type: "exact",
-				Value: eventType,
+				Type:     "exact",
+				Value:    eventType,
 			},
 		}
 
@@ -164,14 +152,22 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 }
+
 func getSub(w http.ResponseWriter, r *http.Request) {
 
 }
+
 func putSub(w http.ResponseWriter, r *http.Request) {
 
 }
-func delSub(w http.ResponseWriter, r *http.Request) {
 
+func delSub(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	if vars["ns"] == "" {
+		vars["ns"] = "default"
+	}
+	log.Printf("request to delete subscription %v in namespace %v", vars["name"], vars["ns"])
+	//todo
 }
 func postFuncs(w http.ResponseWriter, r *http.Request) {
 
