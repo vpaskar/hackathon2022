@@ -23,16 +23,12 @@ import (
 var subscriptionClient subscription.Client
 
 func main() {
-	handleRequests()
-
 	var kubeconfig *string
 	if home := homedir.HomeDir(); home != "" && false {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		kubeconfig = flag.String("kubeconfig", " /Users/faizan/kubeconfigs/kubeconfig--kymatunas--fw-hackihack.yml", "absolute path to the kubeconfig file")
+		kubeconfig = flag.String("kubeconfig", "/Users/faizan/kubeconfigs/kubeconfig--kymatunas--fzn-b1.yml", "absolute path to the kubeconfig file")
 	}
-
-
 
 	flag.Parse()
 
@@ -47,12 +43,15 @@ func main() {
 	// setup clients
 	subscriptionClient = subscription.NewClient(dynamicClient)
 
+	handleRequests()
 
-	log.Printf("Server listening ...")
 }
 
 func handleRequests() {
 	r := mux.NewRouter().StrictSlash(true)
+
+	r.Use(commonMiddleware)
+
 	r.HandleFunc("{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/subs", getAllSubs).Methods("GET")
 	r.HandleFunc("{ns}/subs/{name}", getSub).Methods("GET")
@@ -65,11 +64,19 @@ func handleRequests() {
 	r.HandleFunc("{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8000", r))
+	log.Printf("Server listening on port 8000 ...")
+}
+
+func commonMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
 
-	subsUnstructured, err := subscriptionClient.ListJson("default")
+	subsUnstructured, err := subscriptionClient.ListJson("tunas-testing")
 	if err != nil {
 		log.Printf("%s %s failed: %v",r.Method, r.RequestURI , err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -81,6 +88,7 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s %s failed to marchal json: %v",r.Method, r.RequestURI , err)
 	}
 
+	// w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(subsBytes)
 	if err != nil {
 		log.Printf("%s %s failed to write response: %v",r.Method, r.RequestURI , err)
