@@ -26,8 +26,13 @@ class Function {
         return apiClient.del(deletePath)
     }
 
+    list() {
+        const listPath = backendPath + "/" + this.getFunctionRoutes().list
+        return apiClient.del(listPath)
+    }
+
     getFunctionRoutes() {
-        return routes.subscription
+        return routes.function
     }
 }
 

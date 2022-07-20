@@ -5,7 +5,6 @@ const routes = getRoutes();
 const apiClient = new ApiClient();
 
 class Subscription {
-
     create(data) {
         const createPath = backendPath + "/" + this.getSubscriptionRoutes().create
         return apiClient.post(createPath, data)
@@ -25,6 +24,11 @@ class Subscription {
     remove(name, namespace) {
         const deletePath = backendPath + "/" + this.getSubscriptionRoutes().delete + "/" + namespace + "/" + name
         return apiClient.del(deletePath)
+    }
+
+    list() {
+        const listPath = backendPath + "/" + this.getSubscriptionRoutes().list
+        return apiClient.del(listPath)
     }
 
     getSubscriptionRoutes() {

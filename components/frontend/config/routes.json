@@ -3,13 +3,15 @@
     "create": "/api/subscriptions/create",
     "read": "/api/subscriptions/read",
     "update": "/api/subscriptions/update",
-    "delete": "/api/subscriptions/delete"
+    "delete": "/api/subscriptions/delete",
+    "list": "api/subscriptions"
   },
   "function": {
     "create": "/api/functions/create",
     "read": "/api/functions/read",
     "update": "/api/functions/update",
-    "delete": "/api/functions/delete"
+    "delete": "/api/functions/delete",
+    "list": "api/functions"
   },
   "log": {
     "read": "/api/logs/read"
