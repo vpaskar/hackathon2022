@@ -8,11 +8,10 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/mux"
+	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
-
-	subscription "github.com/vladislavpaskar/hackathon2022/components/backend/clients"
 
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 )
@@ -55,19 +54,18 @@ func main() {
 
 func handleRequests() {
 	r := mux.NewRouter().StrictSlash(true)
-
 	r.Use(commonMiddleware)
 
-	r.HandleFunc("/{ns}/subs/{name}", postSub).Methods("POST")
-	r.HandleFunc("/subs", getAllSubs).Methods("GET")
-	r.HandleFunc("/{ns}/subs/{name}", getSub).Methods("GET")
-	r.HandleFunc("/{ns}/subs/{name}", putSub).Methods("PUT")
-	r.HandleFunc("/{ns}/subs/{name}", delSub).Methods("DELETE")
+	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
+	r.HandleFunc("/api/subs", getAllSubs).Methods("GET")
+	r.HandleFunc("/api/{ns}/subs/{name}", getSub).Methods("GET")
+	r.HandleFunc("/api/{ns}/subs/{name}", putSub).Methods("PUT")
+	r.HandleFunc("/api/{ns}/subs/{name}", delSub).Methods("DELETE")
 
-	r.HandleFunc("/{ns}/funcs/{name}", postFuncs).Methods("POST")
-	r.HandleFunc("/{ns}/funcs/{name}", getFuncs).Methods("GET")
-	r.HandleFunc("/{ns}/funcs/{name}", putFuncs).Methods("PUT")
-	r.HandleFunc("/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
+	r.HandleFunc("/api/{ns}/funcs/{name}", postFuncs).Methods("POST")
+	r.HandleFunc("/api/{ns}/funcs/{name}", getFuncs).Methods("GET")
+	r.HandleFunc("/api{ns}/funcs/{name}", putFuncs).Methods("PUT")
+	r.HandleFunc("/api/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
 	log.Printf("Server listening on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", r))
@@ -93,7 +91,7 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	// Get subscriptions from the k8s cluster
 	subsUnstructured, err := subscriptionClient.ListJson(namespace)
 	if err != nil {
-		log.Printf("%s %s failed: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -101,7 +99,7 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	// Convert response to bytes
 	subsBytes, err := subsUnstructured.MarshalJSON()
 	if err != nil {
-		log.Printf("%s %s failed to marchal json: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -109,7 +107,7 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	// Return response to user
 	_, err = w.Write(subsBytes)
 	if err != nil {
-		log.Printf("%s %s failed to write response: %v",r.Method, r.RequestURI , err)
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}

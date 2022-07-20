@@ -3,8 +3,9 @@ package subscription
 import (
 	"context"
 	"encoding/json"
-	"k8s.io/client-go/util/retry"
 	"log"
+
+	"k8s.io/client-go/util/retry"
 
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -142,7 +143,6 @@ func (c Client) DeleteSubscription(name, namespace string) error {
 
 	return nil
 }
-
 
 // GroupVersionResource returns the GVR for Subscription resource
 func GroupVersionResource() schema.GroupVersionResource {
