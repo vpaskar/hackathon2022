@@ -48,6 +48,31 @@ func (c Client) ListJson(namespace string) (*unstructured.UnstructuredList, erro
 	return subscriptionsUnstructured, nil
 }
 
+// GetSubJson returns the kyma subscription in specified namespace as JSON
+// or returns an error if it fails for any reason
+func (c Client) GetSubJson(name, namespace string) (*unstructured.Unstructured, error) {
+
+	subscriptionUnstructured, err := c.client.Resource(GroupVersionResource()).Namespace(namespace).Get(
+		context.Background(), name, metav1.GetOptions{})
+
+	if err != nil {
+		return nil, err
+	}
+	return subscriptionUnstructured, nil
+}
+
+//// GetSub returns the kyma subscription in specified namespace
+//// or returns an error if it fails for any reason
+//func (c Client) GetSub(name, namespace string) (*eventingv1alpha1.Subscription, error) {
+//
+//	subscriptionUnstructured, err := c.GetSubJson(name, namespace)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	return subscriptionUnstructured, nil
+//}
+
 // CreateSubscription creates a new kyma subscriptions in specified namespace
 // or returns an error if it fails for any reason
 func (c Client) CreateSubscription(sub eventingv1alpha1.Subscription) (*unstructured.Unstructured, error) {

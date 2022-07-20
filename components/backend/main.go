@@ -33,7 +33,7 @@ func main() {
 	if home := homedir.HomeDir(); home != "" && false {
 		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
 	} else {
-		kubeconfig = flag.String("kubeconfig", "/Users/I549741/Downloads/kubeconfig.yaml", "absolute path to the kubeconfig file")
+		kubeconfig = flag.String("kubeconfig", "/Users/faizan/kubeconfigs/kubeconfig--kymatunas--fzn-b1.yml", "absolute path to the kubeconfig file")
 	}
 
 	flag.Parse()
@@ -81,9 +81,19 @@ func commonMiddleware(next http.Handler) http.Handler {
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
-	subsUnstructured, err := subscriptionClient.ListJson("tunas-testing")
+	namespace := "default"
+	// Fetch namespace info from the query parameters
+	v := r.URL.Query()
+	if v.Get("ns") == "-A" {
+		namespace = ""
+	} else if v.Get("ns") != "" {
+		namespace = v.Get("ns")
+	}
+
+	// Get subscriptions from the k8s cluster
+	subsUnstructured, err := subscriptionClient.ListJson(namespace)
 	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		log.Printf("%s %s failed: %v",r.Method, r.RequestURI , err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -91,13 +101,17 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	// Convert response to bytes
 	subsBytes, err := subsUnstructured.MarshalJSON()
 	if err != nil {
-		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
+		log.Printf("%s %s failed to marchal json: %v",r.Method, r.RequestURI , err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Return response to user
 	_, err = w.Write(subsBytes)
 	if err != nil {
-		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+		log.Printf("%s %s failed to write response: %v",r.Method, r.RequestURI , err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 }
 
@@ -154,7 +168,30 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 }
 
 func getSub(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from URI
+	namespace := mux.Vars(r)["ns"]
+	name := mux.Vars(r)["name"]
 
+	subUnstructured, err := subscriptionClient.GetSubJson(name, namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Convert response to bytes
+	subsBytes, err := subUnstructured.MarshalJSON()
+	if err != nil {
+		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	_, err = w.Write(subsBytes)
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+	}
 }
 
 func putSub(w http.ResponseWriter, r *http.Request) {
