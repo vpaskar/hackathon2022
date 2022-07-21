@@ -4,7 +4,7 @@ const backendPath = getBackendPath()
 const routes = getRoutes();
 const apiClient = new ApiClient();
 
-class Function {
+export class Function {
     create(data) {
         this.validateData(data)
         return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
@@ -64,5 +64,3 @@ class Function {
         return backendPath +  this.getFunctionRoutes().list
     }
 }
-
-export default Function;
