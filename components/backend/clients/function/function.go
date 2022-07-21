@@ -117,14 +117,27 @@ func (c Client) List(namespace string) (*serverlessv1alpha1.FunctionList, error)
 	return toFunctionList(functionUnstructured)
 }
 
-func (c Client) ListJson(namespace string) (*unstructured.UnstructuredList, error) {
-	functionUnstructured, err := c.client.Resource(GroupVersionResource()).Namespace(namespace).List(
-		context.Background(), metav1.ListOptions{})
-
+func (c Client) MarshaledTinyFunctionList(namespace string) ([]byte, error) {
+	functionUnstructured, err := c.List(namespace)
 	if err != nil {
 		return nil, err
 	}
-	return functionUnstructured, nil
+
+	var tinyFns = []TinyFunction{}
+	for _, fn := range functionUnstructured.Items {
+		tinyFns = append(tinyFns, TinyFunction{
+			Name:      fn.Name,
+			Namespace: fn.Namespace,
+			Source:    fn.Spec.Source,
+		})
+	}
+	return json.Marshal(tinyFns)
+}
+
+type TinyFunction struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Source    string `json:"Source"`
 }
 
 func (c Client) GetFunctionLogs(name, namespace string, k8sConfig *rest.Config) (map[string]string, error) {
