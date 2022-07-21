@@ -14,13 +14,13 @@ const functionClient = new Function();
 
 const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
   const [terminalLineData, setTerminalLineData] = useState([
-    {type: LineType.Input, value: 'Log line 1'},
+    {type: LineType.Input, value: ''},
   ]);
 
   const [terminalHeader, setTerminalHeader] = useState("Function Logs");
   const [functionList, setFunctionList] = useState([]);
   const [func, setFunc] = useState("");
-  const [funcNamespace, setFuncNamespace] = useState("tunas-testing");
+  const [funcNamespace, setFuncNamespace] = useState("");
 
   useEffect(() => {
     let mounted = true;
@@ -36,9 +36,8 @@ const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
   const getLogs = (func, funcNamespace) => {
     functionClient.logs(func, funcNamespace)
         .then(items => {
-            console.log(items.data["test-2cq6m-7dd64849b4-hbk4j"]);
             setTerminalLineData([
-                {type: LineType.Output, value: items.data[["test-2cq6m-7dd64849b4-hbk4j"]]},
+                {type: LineType.Output, value: items.data},
             ])
             setShouldUpdateLogs(false);
         })
@@ -47,7 +46,9 @@ const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
   const handleChange = (event) => {
     setFunc(event.target.value);
     setTerminalHeader("Function logs from " + event.target.value);
-    getLogs(event.target.value, funcNamespace);
+    const nameSpace = functionList.find(ele => ele.name === event.target.value).namespace;
+    setFuncNamespace(nameSpace);
+    getLogs(event.target.value, nameSpace);
   };
   
   return (
@@ -102,8 +103,7 @@ const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
         classname={styles}
         colorMode={ ColorMode.Dark }  
         lineData={ terminalLineData } />
-
-      {shouldUpdateLogs && getLogs(func, funcNamespace) && console.log("here!")}
+      {shouldUpdateLogs && getLogs(func, funcNamespace)}
     </div>
   )
 };
