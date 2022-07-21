@@ -1,9 +1,9 @@
 import * as React from "react";
 import { Routes, Route } from "react-router-dom";
 import KubeconfigReader from "../kubeconfigReader/kubeconfigReader";
-import Editor from "../editor/editor";
 import About from "../about/about";
 import {createBrowserHistory} from "history";
+import Editor from "../editor/editor";
 
 function App() {
     const history = createBrowserHistory();
