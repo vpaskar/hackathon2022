@@ -1,9 +1,5 @@
 import React, {useState} from 'react';
 import './editor.css';
-import {Container} from "@mui/material";
-import ResponsiveAppBar from "../components/header"
-import TerminalController from "../components/terminal";
-import EventSender from "../components/eventSender";
 import Box from './components/Box';
 import TopBar from './components/TopBar';
 import Xarrow from './components/Xarrow';
@@ -11,10 +7,10 @@ import {Xwrapper} from 'react-xarrows';
 import MenuWindow from './components/MenuWindow';
 import TriggerButton from "./components/TriggerButton";
 import Modal from "./components/Modal";
-// import Subscription from "../../../api/subscription";
-// import Function from "../../../api/function";
-// const subClient = new Subscription();
-// const funcClient = new Function();
+import Subscription from "../../api/subscription";
+import Function from "../../api/function";
+const subClient = new Subscription();
+const funcClient = new Function();
 
 
 // const shapes = ['Subscription', 'Function']
@@ -29,7 +25,7 @@ const shapes = [
     },
 ];
 
-const  funcFields = [
+const funcFields = [
     {
         name: 'name',
         label: 'Function Name',
@@ -212,65 +208,66 @@ const Editor = () => {
         /></div>
 
     return (
-        <div>
-            <h3>Playground </h3>
-            <p className="playground-info">
-                Info about the playground
-            </p>
-            <div id="form-container" className="hidden">
-                {showSubForm === true && subscriptionModal}
-                {showFuncForm === true && functionModal}
-            </div>
-            <Xwrapper>
-                <div className="canvasStyle" id="canvas" onClick={() => handleSelect(null)}>
-                    <div className="toolboxMenu">
-                        <h3>Choose the resource with Drag & Drop</h3>
-                        <div className="toolboxContainer">
-                            {shapes.map((shape) => (
-                                <div
-                                    key={shape.name}
-                                    className={shape.name.toLowerCase()}
-                                    onDragStart={(e) => e.dataTransfer.setData('shape', shape.name)}
-                                    draggable>
-                                    {shape.name}
-                                    {/* <div style={{ textAlign: "center" }}> {shapeName}</div>
+    <div>
+        <h3>Playground </h3>
+        <p className="playground-info">
+            Info about the playground
+        </p>
+        <div id="form-container" className="hidden">
+            {showSubForm === true && subscriptionModal}
+            {showFuncForm === true && functionModal}
+        </div>
+        <Xwrapper>
+            <div className="canvasStyle" id="canvas" onClick={() => handleSelect(null)}>
+                <div className="toolboxMenu">
+                    <h3>Choose the resource with Drag & Drop</h3>
+                    <div className="toolboxContainer">
+                        {shapes.map((shape) => (
+                            <div
+                                key={shape.name}
+                                className={shape.name.toLowerCase()}
+                                onDragStart={(e) => e.dataTransfer.setData('shape', shape.name)}
+                                draggable>
+                                {shape.name}
+                                {/* <div style={{ textAlign: "center" }}> {shapeName}</div>
                   <img src={shapeName2Icon[shapeName]} alt="SwitchIcon" className={"switchIcon"} /> */}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                    <div
-                        id="boxesContainer"
-                        className="boxesContainer"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={handleDropDynamic}>
-                        <h3>Playground area</h3>
-
-                        {boxes.map((box) => (
-                            <Box {...boxProps} key={box.id} box={box} position="absolute" sidePos="right"/>
+                            </div>
                         ))}
                     </div>
-
-                    <TopBar {...props} />
-                    {/* xarrow connections*/}
-                    {lines.map((line, i) => (
-                        <Xarrow
-                            key={line.props.root + '-' + line.props.end + i}
-                            line={line}
-                            selected={selected}
-                            setSelected={setSelected}
-                        />
-                    ))}
-                    {/* boxes menu that may be opened */}
-                    {lines.map((line, i) =>
-                        line.menuWindowOpened ? (
-                            <MenuWindow key={line.props.root + '-' + line.props.end + i} setLines={setLines}
-                                        line={line}/>
-                        ) : null
-                    )}
                 </div>
-            </Xwrapper>
-        </div>
-    );
+                <div
+                    id="boxesContainer"
+                    className="boxesContainer"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={handleDropDynamic}>
+                    <h3>Playground area</h3>
+
+                    {boxes.map((box) => (
+                        <Box {...boxProps} key={box.id} box={box} position="absolute" sidePos="right"/>
+                    ))}
+                </div>
+
+                <TopBar {...props} />
+                {/* xarrow connections*/}
+                {lines.map((line, i) => (
+                    <Xarrow
+                        key={line.props.root + '-' + line.props.end + i}
+                        line={line}
+                        selected={selected}
+                        setSelected={setSelected}
+                    />
+                ))}
+                {/* boxes menu that may be opened */}
+                {lines.map((line, i) =>
+                    line.menuWindowOpened ? (
+                        <MenuWindow key={line.props.root + '-' + line.props.end + i} setLines={setLines}
+                                    line={line}/>
+                    ) : null
+                )}
+            </div>
+        </Xwrapper>
+    </div>
+)
+    ;
 };
 export default Editor;

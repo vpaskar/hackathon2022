@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import './kubeconfigReader.css';
 import {TextField} from "@mui/material";
 import {Button, Box, Typography, Stack, FormControl} from "@mui/material";
-import ResponsiveAppBar from "../components/header";
 
 function KubeconfigReader(props) {
   const [textValue, setTextValue] = useState(localStorage["kubeconfigPath"]);
@@ -24,7 +23,6 @@ function KubeconfigReader(props) {
   }
   return (
     <div className="KubeconfigReader">
-      <ResponsiveAppBar />
       <Box sx={{
           display: 'flex',
           m: 1,
@@ -35,7 +33,6 @@ function KubeconfigReader(props) {
               variant="h6"
               noWrap
               component="a"
-              href="/"
               sx={{
                 mr: 2,
                 display: { xs: 'none', md: 'flex' },

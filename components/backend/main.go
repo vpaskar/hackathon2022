@@ -4,24 +4,25 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
+	"net/http"
+	"reflect"
+
 	"github.com/gorilla/mux"
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/forwarder"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/function"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
-	"io"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"log"
-	"net/http"
-	"reflect"
 )
 
 type K8sResourceClients struct {
 	subscriptionClient subscription.Client
-	functionClient function.Client
+	functionClient     function.Client
 }
 
 var K8sClients = make(map[string]*K8sResourceClients)
@@ -37,10 +38,8 @@ type SubscriptionData struct {
 }
 
 type FunctionData struct {
-	Runtime string `json:"runtime"`
-	//todo
+	//	Source string `json:"source"`
 }
-
 
 func main() {
 	// Start the server
@@ -61,10 +60,11 @@ func handleRequests() {
 	r.HandleFunc("/api/{ns}/subs/{name}", putSub).Methods("PUT")
 	r.HandleFunc("/api/{ns}/subs/{name}", delSub).Methods("DELETE")
 
-	r.HandleFunc("/api/{ns}/funcs/{name}", postFuncs).Methods("POST")
-	r.HandleFunc("/api/{ns}/funcs/{name}", getFuncs).Methods("GET")
-	r.HandleFunc("/api{ns}/funcs/{name}", putFuncs).Methods("PUT")
-	r.HandleFunc("/api/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
+	r.HandleFunc("/api/funcs/", getAllFunctions).Methods("GET")
+	r.HandleFunc("/api/{ns}/funcs/{name}", postFunction).Methods("POST")
+	r.HandleFunc("/api/{ns}/funcs/{name}", getFunction).Methods("GET")
+	r.HandleFunc("/api/{ns}/funcs/{name}", putFunction).Methods("PUT")
+	r.HandleFunc("/api/{ns}/funcs/{name}", delFunction).Methods("DELETE")
 
 	r.HandleFunc("/api/publish/event/{type}", publishEvent).Methods("POST")
 
@@ -139,7 +139,7 @@ func addKubeconfig(w http.ResponseWriter, r *http.Request) {
 	// setup clients
 	resourceClients := &K8sResourceClients{
 		subscriptionClient: subscription.NewClient(dynamicClient),
-		functionClient: function.NewClient(dynamicClient),
+		functionClient:     function.NewClient(dynamicClient),
 	}
 
 	K8sClients[name] = resourceClients
@@ -313,12 +313,6 @@ func getSub(w http.ResponseWriter, r *http.Request) {
 func putSub(w http.ResponseWriter, r *http.Request) {
 	// Fetch data from URI
 	name := mux.Vars(r)["name"]
-	if name == "" {
-		err := missingNameErr("subscription")
-		log.Print(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	namespace := mux.Vars(r)["ns"]
 	if namespace == "" {
 		namespace = "default"
@@ -375,6 +369,7 @@ func delSub(w http.ResponseWriter, r *http.Request) {
 	// Fetch data from URI
 	namespace := mux.Vars(r)["ns"]
 	name := mux.Vars(r)["name"]
+
 	// check
 	// Delete subscription
 	err := K8sClients[defaultCluster].subscriptionClient.DeleteSubscription(name, namespace)
@@ -387,30 +382,15 @@ func delSub(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func postFuncs(w http.ResponseWriter, r *http.Request) {
+func postFunction(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
-	if name == "" {
-		err := missingNameErr("function")
-		log.Print(err.Error())
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
 	namespace := mux.Vars(r)["ns"]
 	if namespace == "" {
 		namespace = "default"
 	}
 
-	// Fetch data from request body
-	var newFunctionData FunctionData
-	err := json.NewDecoder(r.Body).Decode(&newFunctionData)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	// TODO, what fields are needed here?
 	// initialize a function object
-	var minReplicas int32 = 5
+	var minReplicas int32 = 1
 	var maxReplicas int32 = 5
 	newFunction := serverlessv1alpha1.Function{
 		Spec: serverlessv1alpha1.FunctionSpec{
@@ -418,27 +398,110 @@ func postFuncs(w http.ResponseWriter, r *http.Request) {
 			MinReplicas: &maxReplicas,
 		},
 	}
-	newFunction.Name = name
-	newFunction.Namespace = namespace
+	newFunction.Spec.Deps = "{ \n  \"name\": \"test\",\n  \"version\": \"1.0.0\",\n  \"dependencies\":{}\n}"
+	newFunction.Spec.Source = "module.exports = {\n main: function (event, context) {\n  console.log(event.data);\n  return \"Hello World!\";\n  }\n}"
+	newFunction.Spec.Runtime = serverlessv1alpha1.Nodejs16
 	newFunction.APIVersion = "serverless.kyma-project.io/v1alpha1"
 	newFunction.Kind = "Function"
+	newFunction.Name = name
+	newFunction.Namespace = namespace
 
-	//_, err = functionClient.UpdateFunction(*newFunction)
-	//if err != nil {
-	//	http.Error(w, err.Error(), http.StatusBadRequest)
-	//	return
-	//}
+	_, err := functionClient.UpdateFunction(newFunction)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	w.WriteHeader(http.StatusOK)
 }
-func getFuncs(w http.ResponseWriter, r *http.Request) {
 
+func getAllFunctions(w http.ResponseWriter, r *http.Request) {
+	namespace := "default"
+	// Fetch namespace info from the query parameters
+	v := r.URL.Query()
+	if v.Get("ns") == "-A" {
+		namespace = ""
+	} else if v.Get("ns") != "" {
+		namespace = v.Get("ns")
+	}
+
+	// Get subscriptions from the k8s cluster
+	fnUnstructured, err := K8sClients[defaultCluster].functionClient.ListJson(namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Convert response to bytes
+	fnBytes, err := fnUnstructured.MarshalJSON()
+	if err != nil {
+		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	_, err = w.Write(fnBytes)
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 }
-func putFuncs(w http.ResponseWriter, r *http.Request) {
 
+func getFunction(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from URI
+	name := mux.Vars(r)["name"]
+	namespace := mux.Vars(r)["ns"]
+	if namespace == "" {
+		namespace = "default"
+	}
+
+	fnUnstructured, err := K8sClients[defaultCluster].functionClient.GetFnJson(name, namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	// Convert response to bytes
+	fnBytes, err := fnUnstructured.MarshalJSON()
+	if err != nil {
+		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	_, err = w.Write(fnBytes)
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+	}
 }
-func delFuncs(w http.ResponseWriter, r *http.Request) {
 
+func putFunction(w http.ResponseWriter, r *http.Request) {
+	//TODO?
+	w.WriteHeader(http.StatusOK)
+}
+
+func delFunction(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from URI
+	namespace := mux.Vars(r)["ns"]
+	name := mux.Vars(r)["name"]
+	if namespace == "" {
+		namespace = "default"
+	}
+	// check
+	// Delete subscription
+	err := K8sClients[defaultCluster].functionClient.DeleteFunction(name, namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func publishEvent(w http.ResponseWriter, r *http.Request) {
