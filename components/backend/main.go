@@ -37,6 +37,7 @@ type FunctionData struct {
 	//todo
 }
 
+
 func main() {
 	// Start the server
 	handleRequests()
@@ -51,6 +52,7 @@ func handleRequests() {
 
 	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/api/subs", getAllSubs).Methods("GET")
+	r.HandleFunc("/api/cleaneventtypes", getAllCleanEventTypes).Methods("GET")
 	r.HandleFunc("/api/{ns}/subs/{name}", getSub).Methods("GET")
 	r.HandleFunc("/api/{ns}/subs/{name}", putSub).Methods("PUT")
 	r.HandleFunc("/api/{ns}/subs/{name}", delSub).Methods("DELETE")
@@ -169,6 +171,53 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 
 	// Return response to user
 	_, err = w.Write(subsBytes)
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func getAllCleanEventTypes(w http.ResponseWriter, r *http.Request) {
+	namespace := "default"
+	// Fetch namespace info from the query parameters
+	v := r.URL.Query()
+	if v.Get("ns") == "-A" {
+		namespace = ""
+	} else if v.Get("ns") != "" {
+		namespace = v.Get("ns")
+	}
+
+	// Get subscriptions from the k8s cluster
+	subList, err := K8sClients[defaultCluster].subscriptionClient.List(namespace)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cleanEventTypes := make([]string, 0)
+	for _, sub := range subList.Items {
+		if sub.Status.CleanEventTypes == nil {
+			continue
+		}
+
+		for _, cleanedType := range sub.Status.CleanEventTypes {
+			if !contains(cleanEventTypes, cleanedType) {
+				cleanEventTypes = append(cleanEventTypes, cleanedType)
+			}
+		}
+	}
+
+	// Convert response to bytes
+	data, err := json.Marshal(cleanEventTypes)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	_, err = w.Write(data)
 	if err != nil {
 		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -368,11 +417,11 @@ func postFuncs(w http.ResponseWriter, r *http.Request) {
 	newFunction.APIVersion = "serverless.kyma-project.io/v1alpha1"
 	newFunction.Kind = "Function"
 
-	_, err = functionClient.UpdateFunction(*newFunction)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
+	//_, err = functionClient.UpdateFunction(*newFunction)
+	//if err != nil {
+	//	http.Error(w, err.Error(), http.StatusBadRequest)
+	//	return
+	//}
 
 	w.WriteHeader(http.StatusOK)
 }
@@ -388,4 +437,14 @@ func delFuncs(w http.ResponseWriter, r *http.Request) {
 
 func missingNameErr(object string) error {
 	return fmt.Errorf("can't create %s, missing 'name'", object)
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }

@@ -12,6 +12,9 @@ Set KubeConfig: POST /api/kubeconfig/{name}
 
 Get All Subscriptions: GET /api/subs
     Query Param: ns=<namespace>   (use ?ns=-A to get subscriptions from all namespaces)
+    
+Get All cleaned event types: GET /api/cleaneventtypes
+    Query Param: ns=<namespace>   (use ?ns=-A to get from all namespaces)
 
 Get Subscription: GET /api/{ns}/subs/{name}
 Delete Subscription: DELETE /api/{ns}/subs/{name}
