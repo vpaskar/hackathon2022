@@ -3,9 +3,10 @@ package function
 import (
 	"context"
 	"encoding/json"
+	"log"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
-	"log"
 
 	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,8 +67,26 @@ func GroupVersionResource() schema.GroupVersionResource {
 	return schema.GroupVersionResource{
 		Version:  serverlessv1alpha1.GroupVersion.Version,
 		Group:    serverlessv1alpha1.GroupVersion.Group,
-		Resource: "function",
+		Resource: "functions",
 	}
+}
+
+func (c Client) CreateFunction(fn serverlessv1alpha1.Function) (*unstructured.Unstructured, error) {
+
+	mapInterfaceFn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&fn)
+	if err != nil {
+		return nil, err
+	}
+
+	unstructuredFn := &unstructured.Unstructured{
+		Object: mapInterfaceFn,
+	}
+
+	result, err := c.client.Resource(GroupVersionResource()).Namespace(fn.Namespace).Create(context.Background(), unstructuredFn, metav1.CreateOptions{})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (c Client) DeleteFunction(name, namespace string) error {

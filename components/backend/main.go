@@ -30,13 +30,11 @@ var k8sClientConfigs = make(map[string]*rest.Config)
 var kubeconfigs = make(map[string]string)
 var defaultCluster = "default"
 
-var functionClient function.Client
-
 type SubscriptionData struct {
-	Sink  string   `json:"sink"`
-	AppName  string   `json:"appName"`
-	EventName  string   `json:"eventName"`
-	EventVersion  string   `json:"eventVersion"`
+	Sink         string `json:"sink"`
+	AppName      string `json:"appName"`
+	EventName    string `json:"eventName"`
+	EventVersion string `json:"eventVersion"`
 }
 
 type FunctionData struct {
@@ -150,6 +148,7 @@ func addKubeconfig(w http.ResponseWriter, r *http.Request) {
 	k8sClientConfigs[defaultCluster] = k8sClientConfigs[name]
 	K8sClients[defaultCluster] = K8sClients[name]
 	w.WriteHeader(http.StatusOK)
+	log.Print("kubeconfig was set")
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
@@ -405,8 +404,8 @@ func postFunction(w http.ResponseWriter, r *http.Request) {
 	var maxReplicas int32 = 5
 	newFunction := serverlessv1alpha1.Function{
 		Spec: serverlessv1alpha1.FunctionSpec{
-			MaxReplicas: &minReplicas,
-			MinReplicas: &maxReplicas,
+			MinReplicas: &minReplicas,
+			MaxReplicas: &maxReplicas,
 		},
 	}
 	newFunction.Spec.Deps = "{ \n  \"name\": \"test\",\n  \"version\": \"1.0.0\",\n  \"dependencies\":{}\n}"
@@ -417,7 +416,7 @@ func postFunction(w http.ResponseWriter, r *http.Request) {
 	newFunction.Name = name
 	newFunction.Namespace = namespace
 
-	_, err := functionClient.UpdateFunction(newFunction)
+	_, err := K8sClients[defaultCluster].functionClient.CreateFunction(newFunction)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -427,6 +426,7 @@ func postFunction(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllFunctions(w http.ResponseWriter, r *http.Request) {
+	logHitEndpoint(r.RequestURI)
 	namespace := "default"
 	// Fetch namespace info from the query parameters
 	v := r.URL.Query()
@@ -462,6 +462,7 @@ func getAllFunctions(w http.ResponseWriter, r *http.Request) {
 }
 
 func getFunction(w http.ResponseWriter, r *http.Request) {
+	logHitEndpoint(r.RequestURI)
 	// Fetch data from URI
 	name := mux.Vars(r)["name"]
 	namespace := mux.Vars(r)["ns"]
@@ -492,11 +493,13 @@ func getFunction(w http.ResponseWriter, r *http.Request) {
 }
 
 func putFunction(w http.ResponseWriter, r *http.Request) {
+	logHitEndpoint(r.RequestURI)
 	//TODO?
 	w.WriteHeader(http.StatusOK)
 }
 
 func delFunction(w http.ResponseWriter, r *http.Request) {
+	logHitEndpoint(r.RequestURI)
 	// Fetch data from URI
 	namespace := mux.Vars(r)["ns"]
 	name := mux.Vars(r)["name"]
@@ -541,7 +544,7 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//// remember to close the forwarding
+	// remember to close the forwarding
 	defer ret.Close()
 
 	// wait forwarding ready
@@ -591,4 +594,8 @@ func contains(s []string, str string) bool {
 	}
 
 	return false
+}
+
+func logHitEndpoint(endpoint string) {
+	log.Printf("hit endpoint %s", endpoint)
 }

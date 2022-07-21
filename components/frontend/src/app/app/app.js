@@ -7,19 +7,21 @@ import Editor from "../editor/editor";
 import {Container} from "@mui/material";
 import ResponsiveAppBar from "../components/header";
 import SendAndReceive from "../senderAndReceiver/senderAndReceiver"
+import { getRoutes } from "../../config/config";
 
 function App() {
     const history = createBrowserHistory();
+    const routes = getRoutes().frontEndPath;
     return (
         <div className="App">
+            <ResponsiveAppBar />
                 <header className="Editor-header">
                     <Container component="main" maxWidth="xl">
-                        <ResponsiveAppBar/>
                         <Routes>
                             <Route path="/" element={<KubeconfigReader history={history}/>}/>
-                            <Route path="/sendAndRecieve" element={<SendAndReceive history={history}/>}/>
-                            <Route path="/editor" element={<Editor/>}/>
-                            <Route path="/about" element={<About/>}/>
+                            <Route path={routes.sendAndReceive} element={<SendAndReceive history={history}/>}/>
+                            <Route path={routes.editor} element={<Editor/>}/>
+                            <Route path={routes.about} element={<About/>}/>
                         </Routes>
                     </Container>
                 </header>
