@@ -1,9 +1,5 @@
 import React, {useState} from 'react';
 import './editor.css';
-import {Container} from "@mui/material";
-import ResponsiveAppBar from "../components/header"
-import TerminalController from "../components/terminal";
-import EventSender from "../components/eventSender";
 import Box from './components/Box';
 import TopBar from './components/TopBar';
 import Xarrow from './components/Xarrow';

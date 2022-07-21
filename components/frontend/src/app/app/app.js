@@ -6,8 +6,7 @@ import {createBrowserHistory} from "history";
 import Editor from "../editor/editor";
 import {Container} from "@mui/material";
 import ResponsiveAppBar from "../components/header";
-import EventSender from "../components/eventSender";
-import TerminalController from "../components/terminal";
+import SendAndReceive from "../senderAndReceiver/senderAndReceiver"
 
 function App() {
     const history = createBrowserHistory();
@@ -18,13 +17,12 @@ function App() {
                         <ResponsiveAppBar/>
                         <Routes>
                             <Route path="/" element={<KubeconfigReader history={history}/>}/>
+                            <Route path="/sendAndRecieve" element={<SendAndReceive history={history}/>}/>
                             <Route path="/editor" element={<Editor/>}/>
                             <Route path="/about" element={<About/>}/>
                         </Routes>
                     </Container>
                 </header>
-            {/*<EventSender/>*/}
-            {/*<TerminalController/>*/}
         </div>
     );
 }

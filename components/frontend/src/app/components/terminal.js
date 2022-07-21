@@ -16,6 +16,19 @@ const TerminalController = (props = {}) => {
 
   const [terminalHeader, setTerminalHeader] = useState("Function Logs");
 
+//   const [functionList, setFunctionList] = useState([]);
+
+//   useEffect(() => {
+//    let mounted = true;
+//    Function.list()
+//      .then(items => {
+//        if(mounted) {
+//         setFunctionList(items)
+//        }
+//      })
+//    return () => mounted = false;
+//  }, [])
+
   const handleChange = (event) => {
     setTerminalHeader("Function logs from " + event.target.value);
   };
@@ -32,7 +45,6 @@ const TerminalController = (props = {}) => {
               variant="h6"
               noWrap
               component="a"
-              href="/"
               sx={{
                 mr: 2,
                 display: { xs: 'none', md: 'flex' },

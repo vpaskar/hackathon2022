@@ -21,5 +21,9 @@
   },
   "publisher": {
     "publish": "/api/publisher/publish"
+  },
+  "cleanEventTypes": {
+    "list": "/api/cleaneventtypes?ns=-A"
   }
+
 }
