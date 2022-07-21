@@ -324,7 +324,6 @@ const Editor = () => {
                             ))}
                         </div>
                     </div>
-                    {lines.length}
                     {/* xarrow connections*/}
                     {lines.map((line, i) => (
                         subscriptions.length > 0 && functions.length > 0 && lines.length > 0 &&
