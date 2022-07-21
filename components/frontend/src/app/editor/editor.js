@@ -1,19 +1,16 @@
 import React, {useEffect, useState} from 'react';
 import './editor.css';
 import Box from './components/Box';
-import TopBar from './components/TopBar';
 import Xarrow from './components/Xarrow';
 import {Xwrapper} from 'react-xarrows';
-import MenuWindow from './components/MenuWindow';
 import TriggerButton from "./components/TriggerButton";
 import Modal from "./components/Modal";
-import { Function } from "../../api/function";
+import {Function} from "../../api/function";
 import {Subscription} from "../../api/subscription";
 
 const subClient = new Subscription();
 const funcClient = new Function();
 
-// const shapes = ['Subscription', 'Function']
 const shapes = [
     {
         name: 'Subscription',
@@ -83,35 +80,11 @@ const Editor = () => {
     const [showSubForm, setShowSubForm] = useState(false);
     const [showFuncForm, setShowFuncForm] = useState(false);
 
-    const [pendingSub, setPendingSub] = useState({});
-    const [pendingFunc, setPendingFunc] = useState({});
-
     const handleSelect = (e) => {
         if (e === null) {
             setSelected(null);
             setActionState('Normal');
         } else setSelected({id: e.target.id, type: 'box'});
-    };
-
-    const props = {
-        subscriptions,
-        setSubscriptions,
-        functions,
-        setFunctions,
-        selected,
-        pendingSub,
-        setPendingSub,
-        pendingFunc,
-        setPendingFunc,
-        handleSelect,
-        actionState,
-        setActionState,
-        lines,
-        setLines,
-        showSubForm,
-        showFuncForm,
-        setShowSubForm,
-        setShowFuncForm
     };
 
     const boxProps = {
@@ -129,8 +102,6 @@ const Editor = () => {
     const handleSubscriptionDrop = (e) => {
         let shapeToCreate = e.dataTransfer.getData('shape');
         if (shapes.filter(shape => shape.name === shapeToCreate)) {
-            let currentSub = e.target.getBoundingClientRect();
-            setPendingSub(currentSub)
             setShowSubForm(true)
         }
     };
@@ -138,8 +109,6 @@ const Editor = () => {
     const handleFunctionDrop = (e) => {
         let shapeToCreate = e.dataTransfer.getData('shape');
         if (shapes.filter(shape => shape.name === shapeToCreate)) {
-            let currentFunc = e.target.getBoundingClientRect();
-            setPendingFunc(currentFunc)
             setShowFuncForm(true)
         }
     };
@@ -166,15 +135,14 @@ const Editor = () => {
             appName: event.target.appName.value,
             eventName: event.target.eventName.value,
             eventVersion: event.target.eventVersion.value,
-            x: pendingSub.x,
-            y: pendingSub.y,
         }
         try {
             await subClient.create(subPayload)
             setShowSubForm(false)
             window.location.reload();
         } catch (e) {
-            console.log('cannot save the subscription', e)
+            console.log(e)
+            alert('cannot save the subscription' + e.response.request.responseText)
         }
     };
     const showFuncModal = () => {
@@ -196,7 +164,8 @@ const Editor = () => {
             setFunctions(functions => [...functions, funcPayload])
             window.location.reload();
         } catch (e) {
-            console.log('cannot save the function', e)
+            console.log(e)
+            alert('cannot save the function' + e.response.request.responseText)
         }
     };
 
@@ -224,51 +193,64 @@ const Editor = () => {
         />
     </div>
 
-    // subscription actions
-    const getSubscriptions = async () => {
-        setSubscriptions([])
-        const subscriptions = await subClient.list()
-        subscriptions.data.items.map((subscription, i) => {
-            let newSub = {
-                id: subscription.metadata.name,
-                name: subscription.metadata.name,
-                namespace: subscription.metadata.namespace,
-                sink: subscription.spec.sink,
-                eventType: subscription.spec.filter.filters[0].eventType.value,
-                type: "subscription",
-            };
-            setSubscriptions(subscriptions => [...subscriptions, newSub])
-            const connectedTo = funcClient.getFunctionNameBySink(newSub.sink)
-            const newLine = {
-                props: {
-                   start: newSub.name,
-                   end: connectedTo,
-                },
-            }
-            setLines(lines => [...lines, newLine])
-            // console.log("subscription %s is connected to function %s", newSub.name, connectedTo)
-        })
-    };
-
-
-    const getFunctions = async () => {
-        setFunctions([])
-        const functions = await funcClient.list()
-
-        functions.data.map((func, i) => {
-            let newBox = {
-                id: func.name,
-                namespace: func.namespace,
-                type: "function",
-            };
-            setFunctions(functions => [...functions, newBox])
-
-        })
-    };
-
     useEffect(() => {
+        const getSubscriptions = async () => {
+            setSubscriptions([])
+            const subscriptions = await subClient.list()
+            subscriptions.data.items.map((subscription, i) => {
+                let newSub = {
+                    id: subscription.metadata.name,
+                    name: subscription.metadata.name,
+                    namespace: subscription.metadata.namespace,
+                    sink: subscription.spec.sink,
+                    eventType: subscription.spec.filter.filters[0].eventType.value,
+                    type: "subscription",
+                };
+                setSubscriptions(subscriptions => [...subscriptions, newSub])
+            })
+        };
+
+        const getFunctions = async () => {
+            setFunctions([])
+            const functions = await funcClient.list()
+
+            functions.data.map((func, i) => {
+                let newFunc = {
+                    id: func.name,
+                    name: func.name,
+                    namespace: func.namespace,
+                    type: "function",
+                };
+                setFunctions(functions => [...functions, newFunc])
+            })
+        };
+
+        const getLines = async () => {
+            setLines([])
+            const subs = await subClient.list()
+            const funcs = await funcClient.list()
+            subs.data.items.map((subscription) => {
+                const connectedTo = funcClient.getFunctionNameBySink(subscription.spec.sink)
+                if (connectedTo === null) {
+                    return;
+                }
+                const newLine = {
+                    props: {
+                        start: subscription.metadata.name,
+                        end: connectedTo,
+                        root: subscription.metadata.name,
+                    },
+                }
+                console.log(funcs.data)
+                if (!funcs.data.find(func => func.name === connectedTo)) {
+                    return;
+                }
+                setLines(lines => [...lines, newLine])
+            })
+        };
         getSubscriptions().then(() => console.log('Subscriptions\' list updated!'))
         getFunctions().then(() => console.log('Functions\' list updated!'))
+        getLines().then(() => console.log('Connections were drawn'))
     }, [])
 
     return (
@@ -310,7 +292,8 @@ const Editor = () => {
                         >
                             <h4>Subscription Area</h4>
                             {subscriptions.map((subscription) => (
-                                <Box {...boxProps} className="sub-box" box={subscription} sidePos="right"/>
+                                <Box {...boxProps} key={subscription.name} className="sub-box" box={subscription}
+                                     position="static" sidePos="left"/>
                             ))}
                         </div>
                         <div
@@ -320,14 +303,15 @@ const Editor = () => {
                         >
                             <h4>Function Area</h4>
                             {functions.map((func) => (
-                                <Box {...boxProps} className="sub-box" box={func} sidePos="right"/>
+                                <Box {...boxProps} key={func.id} className="sub-box" box={func} position="static"
+                                     sidePos="left"/>
                             ))}
                         </div>
                     </div>
-
-                    <TopBar {...props} />
+                    {lines.length}
                     {/* xarrow connections*/}
                     {lines.map((line, i) => (
+                        subscriptions.length > 0 && functions.length > 0 && lines.length > 0 &&
                         <Xarrow
                             key={line.props.root + '-' + line.props.end + i}
                             line={line}
@@ -335,17 +319,9 @@ const Editor = () => {
                             setSelected={setSelected}
                         />
                     ))}
-                    {/* boxes menu that may be opened */}
-                    {lines.map((line, i) =>
-                        line.menuWindowOpened ? (
-                            <MenuWindow key={line.props.root + '-' + line.props.end + i} setLines={setLines}
-                                        line={line}/>
-                        ) : null
-                    )}
                 </div>
             </Xwrapper>
         </div>
-    )
-        ;
+    );
 };
 export default Editor;

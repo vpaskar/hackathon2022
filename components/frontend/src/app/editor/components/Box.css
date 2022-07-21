@@ -2,7 +2,7 @@
   position: absolute;
 }
 .hoverMarker:hover {
-  background: rgb(230, 230, 230);
+  background: greenyellow;
 }
 .switchIcon {
   top: 0;

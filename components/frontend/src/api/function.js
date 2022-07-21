@@ -5,13 +5,13 @@ const routes = getRoutes();
 const apiClient = new ApiClient();
 
 export class Function {
-    create(data) {
+    async create(data) {
         this.validateData(data)
-        return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
+        return await apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
     }
 
-    read(namespace, name) {
-        return apiClient.get(this.getReadEndpoint(namespace, name))
+    async read(namespace, name) {
+        return await apiClient.get(this.getReadEndpoint(namespace, name))
     }
 
     update(name, namespace, data) {
@@ -69,11 +69,10 @@ export class Function {
     }
 
     getFunctionNameBySink(sink){
-        const regexp = /https*:\/\/([a-zA-Z-]*)\./g;
-
+        const regexp = /https*:\/\/([a-zA-Z\-0-9]*)\./g;
         const array = [...sink.matchAll(regexp)];
 
-        return(array[0][1]);
+        return array.length === 0 ? null : array[0][1];
     }
 
     getLogsEndpoint(namespace, name) {

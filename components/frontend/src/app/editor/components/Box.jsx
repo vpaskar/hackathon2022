@@ -53,15 +53,15 @@ const Box = (props) => {
                         await subClient.remove(el.namespace, el.name).then(() => console.log('subscription deleted'))
                         window.location.reload();
                     } catch (e) {
-                        console.log('cannot delete the subscription', e)
+                        alert('cannot delete the subscription'+ e.errorText)
                     }
                     break;
                 case 'function':
                     try {
-                        funcClient.remove(el.namespace, el.id).then(() => console.log('function deleted'))
+                        await funcClient.remove(el.namespace, el.id).then(() => console.log('function deleted'))
                         window.location.reload();
                     } catch (e) {
-                        console.log('cannot delete the function', e)
+                        alert('cannot delete the function'+ e.errorText)
                     }
                     break;
             }
@@ -87,7 +87,8 @@ const Box = (props) => {
             const func = props.box
             const funcFields = <div className="box-text">
                 Function<strong> {func.id}</strong>
-                <span className="close-box" id={func.id} onClick={e => onDeleteClick(e, func, 'function')}>X</span>
+                <span className="close-box" id={func.id} onClick={e => onDeleteClick(e, func, 'function')}>X</span><br/>
+                Namespace: {func.namespace}
                 {/*<ul className="small-list">*/}
                 {/*<li>Namespace: {func.namespace}</li>*/}
                 {/*</ul>*/}
