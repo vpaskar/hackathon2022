@@ -1,8 +1,14 @@
 package function
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -120,6 +126,76 @@ func (c Client) ListJson(namespace string) (*unstructured.UnstructuredList, erro
 	}
 	return functionUnstructured, nil
 }
+
+func (c Client) GetFunctionLogs(name, namespace string, k8sConfig *rest.Config) (map[string]string, error) {
+	var logsData = make(map[string]string)
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return logsData, err
+	}
+
+	// get the pods by label filter
+	labelSelector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			"serverless.kyma-project.io/function-name": name,
+			"serverless.kyma-project.io/resource": "deployment",
+			},
+		}
+	listOptions := metav1.ListOptions{
+		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
+	}
+	podList, err := clientset.CoreV1().Pods(namespace).List(context.Background(), listOptions)
+	if err != nil {
+		return logsData, err
+	}
+
+	// Fetch logs for each pod
+	for _, pod := range podList.Items {
+		podName := pod.ObjectMeta.Name
+		podLogs, err := c.GetPodLogs(podName, namespace, k8sConfig)
+		if err != nil {
+			return logsData, err
+		}
+		logsData[podName] = podLogs
+	}
+
+	return logsData, nil
+}
+
+func (c Client) GetPodLogs(name, namespace string, k8sConfig *rest.Config) (string, error) {
+
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(k8sConfig)
+	if err != nil {
+		return "", err
+	}
+
+	count := int64(300)
+	podLogOpts := v1.PodLogOptions{
+		Container: "function",
+		Follow:    false,
+		TailLines: &count,
+	}
+
+	req := clientset.CoreV1().Pods(namespace).GetLogs(name, &podLogOpts)
+	podLogs, err := req.Stream(context.Background())
+	if err != nil {
+		return "", err
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "", err
+	}
+	str := buf.String()
+
+	return str, nil
+}
+
 
 func toFunctionList(unstructuredList *unstructured.UnstructuredList) (*serverlessv1alpha1.FunctionList, error) {
 	functionList := new(serverlessv1alpha1.FunctionList)

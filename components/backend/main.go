@@ -65,6 +65,7 @@ func handleRequests() {
 	r.HandleFunc("/api/{ns}/funcs/{name}", getFunction).Methods("GET")
 	r.HandleFunc("/api/{ns}/funcs/{name}", putFunction).Methods("PUT")
 	r.HandleFunc("/api/{ns}/funcs/{name}", delFunction).Methods("DELETE")
+	r.HandleFunc("/api/{ns}/funcs/{name}/logs", getFunctionLogs).Methods("GET")
 
 	r.HandleFunc("/api/publishEvent", publishEvent).Methods("POST")
 
@@ -516,6 +517,36 @@ func delFunction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func getFunctionLogs(w http.ResponseWriter, r *http.Request) {
+	logHitEndpoint(r.RequestURI)
+	// Fetch data from URI
+	namespace := mux.Vars(r)["ns"]
+	name := mux.Vars(r)["name"]
+
+	// check
+	// Delete subscription
+	logsData, err := K8sClients[defaultCluster].functionClient.GetFunctionLogs(name, namespace, k8sClientConfigs[defaultCluster])
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Convert response to bytes
+	data, err := json.Marshal(logsData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	// w.Header().Set("Content-Type", "text/plain")
+	_, err = w.Write([]byte(data))
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+	}
 }
 
 func publishEvent(w http.ResponseWriter, r *http.Request) {

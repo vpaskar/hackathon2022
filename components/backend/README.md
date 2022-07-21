@@ -40,4 +40,5 @@ Update Subscription: PUT /api/{ns}/subs/{name}
             }
 
 Publish Event: POST /api/publishEvent
+Get Function Logs: GET /api/{ns}/funcs/{name}/logs
 ```
