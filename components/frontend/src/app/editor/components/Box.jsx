@@ -2,8 +2,8 @@ import React from 'react';
 import './Box.css';
 import Draggable from 'react-draggable';
 import {useXarrow} from 'react-xarrows';
-import Function from "../../../api/function";
 import {Subscription} from "../../../api/subscription";
+import {Function} from "../../../api/function";
 
 const subClient = new Subscription();
 const funcClient = new Function();
