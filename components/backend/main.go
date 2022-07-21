@@ -29,6 +29,7 @@ var K8sClients = make(map[string]*K8sResourceClients)
 var k8sClientConfigs = make(map[string]*rest.Config)
 var kubeconfigs = make(map[string]string)
 var defaultCluster = "default"
+var portForwardResult *forwarder.Result = nil
 
 type SubscriptionData struct {
 	Sink         string `json:"sink"`
@@ -40,6 +41,10 @@ type SubscriptionData struct {
 func main() {
 	// Start the server
 	handleRequests()
+
+	if portForwardResult != nil {
+		portForwardResult.Close()
+	}
 }
 
 func handleRequests() {
@@ -75,6 +80,45 @@ func commonMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
 	})
+}
+
+func portForwardEPP() (*forwarder.Result, error) {
+	options := []*forwarder.Option{
+		{
+			// https://github.com/anthhub/forwarder
+			// if local port isn't provided, forwarder will generate a random port number
+			// if target port isn't provided, forwarder find the first container port of the pod or service
+			LocalPort: 9091,
+			// the k8s pod port
+			RemotePort: 8080,
+			// the forwarding service name
+			ServiceName: "eventing-publisher-proxy",
+			// the k8s source string, eg: svc/my-nginx-svc po/my-nginx-666
+			// the Source field will be parsed and override ServiceName or RemotePort field
+			//Source: "svc/my-nginx-66b6c48dd5-ttdb2",
+			// namespace default is "default"
+			Namespace: "kyma-system",
+		},
+	}
+
+	ret, err := forwarder.Forwarders(context.Background(), options, k8sClientConfigs[defaultCluster])
+	if err != nil {
+		return nil, err
+	}
+
+	//// remember to close the forwarding
+	//defer ret.Close()
+
+	// wait forwarding ready
+	// the remote and local ports are listed
+	ports, err := ret.Ready()
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("port-forward started to ports: %+v\n", ports)
+
+	return ret, err
 }
 
 func getKubeconfigs(w http.ResponseWriter, r *http.Request) {
@@ -145,6 +189,14 @@ func addKubeconfig(w http.ResponseWriter, r *http.Request) {
 	kubeconfigs[defaultCluster] = kubeconfigs[name]
 	k8sClientConfigs[defaultCluster] = k8sClientConfigs[name]
 	K8sClients[defaultCluster] = K8sClients[name]
+
+	// start the port-forward to EPP
+	portForwardResult, err = portForwardEPP()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 	log.Print("kubeconfig was set")
 }
@@ -245,7 +297,7 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var eventTypes []string
-	newType := fmt.Sprintf("sap.custom.kyma.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
+	newType := fmt.Sprintf("sap.kyma.custom.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
 	eventTypes = append(eventTypes, newType)
 
 	// Initialize a subscription object
@@ -331,7 +383,7 @@ func putSub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var eventTypes []string
-	newType := fmt.Sprintf("sap.custom.kyma.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
+	newType := fmt.Sprintf("sap.kyma.custom.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
 	eventTypes = append(eventTypes, newType)
 
 	// Initialize a subscription object
@@ -545,67 +597,42 @@ func getFunctionLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 func publishEvent(w http.ResponseWriter, r *http.Request) {
-	options := []*forwarder.Option{
-		{
-			// https://github.com/anthhub/forwarder
-			// if local port isn't provided, forwarder will generate a random port number
-			// if target port isn't provided, forwarder find the first container port of the pod or service
-			LocalPort: 9091,
-			// the k8s pod port
-			RemotePort: 8080,
-			// the forwarding service name
-			ServiceName: "eventing-publisher-proxy",
-			// the k8s source string, eg: svc/my-nginx-svc po/my-nginx-666
-			// the Source field will be parsed and override ServiceName or RemotePort field
-			//Source: "svc/my-nginx-66b6c48dd5-ttdb2",
-			// namespace default is "default"
-			Namespace: "kyma-system",
-		},
-	}
-
-	ret, err := forwarder.Forwarders(context.Background(), options, k8sClientConfigs[defaultCluster])
+	// forward the event to EPP
+	response, err := forwardEventToEPP(r)
 	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		portForwardResult, err = portForwardEPP()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// try again
+		response, err = forwardEventToEPP(r)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 
-	// remember to close the forwarding
-	defer ret.Close()
+	w.WriteHeader(response.StatusCode)
+}
 
-	// wait forwarding ready
-	// the remote and local ports are listed
-	ports, err := ret.Ready()
-	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	fmt.Printf("port-forward started to ports: %+v\n", ports)
-
+func forwardEventToEPP(r *http.Request) (*http.Response, error) {
 	// forward the event to EPP
 	newRequest, err := http.NewRequest("POST", "http://localhost:9091/publish", r.Body)
 	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, err
 	}
 	newRequest.Header = r.Header.Clone()
 
 	client := &http.Client{}
 	response, err := client.Do(newRequest)
 	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+		return nil, err
 	}
 	defer response.Body.Close()
 
-	// close the forwarding
-	ret.Close()
-
-	w.WriteHeader(response.StatusCode)
+	return response, nil
 }
 
 func contains(s []string, str string) bool {

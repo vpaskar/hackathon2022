@@ -19,7 +19,7 @@ spec:
           image: mfaizan21/skydivers-frontend:v0.0.1
           imagePullPolicy: Always
           ports:
-            - containerPort: 8080
+            - containerPort: 3000
           env:
           - name: BACKEND_URL
             value: backend.skydivers.svc.cluster.local
@@ -34,7 +34,7 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080
+      targetPort: 3000
 ---
 apiVersion: gateway.kyma-project.io/v1alpha1
 kind: APIRule

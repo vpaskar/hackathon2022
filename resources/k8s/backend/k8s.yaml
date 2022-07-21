@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: mfaizan21/skydivers-backend:v0.0.1
+          image: mfaizan21/skydivers-backend:v0.0.2
           imagePullPolicy: Always
           ports:
             - containerPort: 8000
