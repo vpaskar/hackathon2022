@@ -5,11 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"log"
+
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	"log"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/util/retry"
@@ -117,14 +118,27 @@ func (c Client) List(namespace string) (*serverlessv1alpha1.FunctionList, error)
 	return toFunctionList(functionUnstructured)
 }
 
-func (c Client) ListJson(namespace string) (*unstructured.UnstructuredList, error) {
-	functionUnstructured, err := c.client.Resource(GroupVersionResource()).Namespace(namespace).List(
-		context.Background(), metav1.ListOptions{})
-
+func (c Client) MarshaledTinyFunctionList(namespace string) ([]byte, error) {
+	functionUnstructured, err := c.List(namespace)
 	if err != nil {
 		return nil, err
 	}
-	return functionUnstructured, nil
+
+	var tinyFns = []TinyFunction{}
+	for _, fn := range functionUnstructured.Items {
+		tinyFns = append(tinyFns, TinyFunction{
+			Name:      fn.Name,
+			Namespace: fn.Namespace,
+			Source:    fn.Spec.Source,
+		})
+	}
+	return json.Marshal(tinyFns)
+}
+
+type TinyFunction struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Source    string `json:"source"`
 }
 
 func (c Client) GetFunctionLogs(name, namespace string, k8sConfig *rest.Config) (map[string]string, error) {
@@ -140,9 +154,9 @@ func (c Client) GetFunctionLogs(name, namespace string, k8sConfig *rest.Config) 
 	labelSelector := metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			"serverless.kyma-project.io/function-name": name,
-			"serverless.kyma-project.io/resource": "deployment",
-			},
-		}
+			"serverless.kyma-project.io/resource":      "deployment",
+		},
+	}
 	listOptions := metav1.ListOptions{
 		LabelSelector: labels.Set(labelSelector.MatchLabels).String(),
 	}
@@ -195,7 +209,6 @@ func (c Client) GetPodLogs(name, namespace string, k8sConfig *rest.Config) (stri
 
 	return str, nil
 }
-
 
 func toFunctionList(unstructuredList *unstructured.UnstructuredList) (*serverlessv1alpha1.FunctionList, error) {
 	functionList := new(serverlessv1alpha1.FunctionList)

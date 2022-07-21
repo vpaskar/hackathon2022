@@ -37,10 +37,6 @@ type SubscriptionData struct {
 	EventVersion string `json:"eventVersion"`
 }
 
-type FunctionData struct {
-	//	Source string `json:"source"`
-}
-
 func main() {
 	// Start the server
 	handleRequests()
@@ -437,16 +433,9 @@ func getAllFunctions(w http.ResponseWriter, r *http.Request) {
 		namespace = v.Get("ns")
 	}
 
-	// Get subscriptions from the k8s cluster
-	fnUnstructured, err := K8sClients[defaultCluster].functionClient.ListJson(namespace)
-	if err != nil {
-		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	// Convert response to bytes
-	fnBytes, err := fnUnstructured.MarshalJSON()
+	// Get tiny functions from the k8s cluster
+	// tiny functions only hold name, namespace and source
+	fnBytes, err := K8sClients[defaultCluster].functionClient.MarshaledTinyFunctionList(namespace)
 	if err != nil {
 		log.Printf("%s %s failed to marchal json: %v", r.Method, r.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -555,7 +544,7 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 			// https://github.com/anthhub/forwarder
 			// if local port isn't provided, forwarder will generate a random port number
 			// if target port isn't provided, forwarder find the first container port of the pod or service
-			LocalPort: 	9091,
+			LocalPort: 9091,
 			// the k8s pod port
 			RemotePort: 8080,
 			// the forwarding service name
