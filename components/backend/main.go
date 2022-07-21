@@ -3,28 +3,34 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"path/filepath"
 
 	"github.com/gorilla/mux"
+	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/function"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/homedir"
 
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
+	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
 )
 
-//var Functions []xyz.Function //crud
-//logs //get
-//cloudevents //get
-
 var subscriptionClient subscription.Client
+
+var functionClient function.Client
 
 type SubscriptionData struct {
 	Sink  string   `json:"sink"`
 	Types []string `json:"types"`
+}
+
+type FunctionData struct {
+	Runtime string `json:"runtime"`
+	//todo
 }
 
 func main() {
@@ -47,14 +53,16 @@ func main() {
 
 	// setup clients
 	subscriptionClient = subscription.NewClient(dynamicClient)
+	functionClient = function.NewClient(dynamicClient)
 
 	handleRequests()
-
 }
 
 func handleRequests() {
 	r := mux.NewRouter().StrictSlash(true)
 	r.Use(commonMiddleware)
+
+	r.HandleFunc("api/kubeconfig/set", putKubeconfig).Methods("POST")
 
 	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/api/subs", getAllSubs).Methods("GET")
@@ -76,6 +84,10 @@ func commonMiddleware(next http.Handler) http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		next.ServeHTTP(w, r)
 	})
+}
+
+func putKubeconfig(w http.ResponseWriter, r *http.Request) {
+	//TODO
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
@@ -194,8 +206,17 @@ func getSub(w http.ResponseWriter, r *http.Request) {
 
 func putSub(w http.ResponseWriter, r *http.Request) {
 	// Fetch data from URI
-	namespace := mux.Vars(r)["ns"]
 	name := mux.Vars(r)["name"]
+	if name == "" {
+		err := missingNameErr("subscription")
+		log.Print(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	namespace := mux.Vars(r)["ns"]
+	if namespace == "" {
+		namespace = "default"
+	}
 
 	// Fetch data from request body
 	var newSubData SubscriptionData
@@ -248,7 +269,7 @@ func delSub(w http.ResponseWriter, r *http.Request) {
 	// Fetch data from URI
 	namespace := mux.Vars(r)["ns"]
 	name := mux.Vars(r)["name"]
-
+	// check
 	// Delete subscription
 	err := subscriptionClient.DeleteSubscription(name, namespace)
 	if err != nil {
@@ -261,7 +282,48 @@ func delSub(w http.ResponseWriter, r *http.Request) {
 }
 
 func postFuncs(w http.ResponseWriter, r *http.Request) {
+	name := mux.Vars(r)["name"]
+	if name == "" {
+		err := missingNameErr("function")
+		log.Print(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	namespace := mux.Vars(r)["ns"]
+	if namespace == "" {
+		namespace = "default"
+	}
 
+	// Fetch data from request body
+	var newFunctionData FunctionData
+	err := json.NewDecoder(r.Body).Decode(&newFunctionData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// TODO, what fields are needed here?
+	// initialize a function object
+	var minReplicas int32 = 5
+	var maxReplicas int32 = 5
+	newFunction := serverlessv1alpha1.Function{
+		Spec: serverlessv1alpha1.FunctionSpec{
+			MaxReplicas: &minReplicas,
+			MinReplicas: &maxReplicas,
+		},
+	}
+	newFunction.Name = name
+	newFunction.Namespace = namespace
+	newFunction.APIVersion = "serverless.kyma-project.io/v1alpha1"
+	newFunction.Kind = "Function"
+
+	_, err = functionClient.UpdateFunction(*newFunction)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 func getFuncs(w http.ResponseWriter, r *http.Request) {
 
@@ -271,4 +333,8 @@ func putFuncs(w http.ResponseWriter, r *http.Request) {
 }
 func delFuncs(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func missingNameErr(object string) error {
+	return fmt.Errorf("can't create %s, missing 'name'", object)
 }
