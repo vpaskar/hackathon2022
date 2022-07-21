@@ -49,9 +49,8 @@ func handleRequests() {
 	r.HandleFunc("/api/kubeconfig/{name}", addKubeconfig).Methods("POST")
 	r.HandleFunc("/api/kubeconfigs", getKubeconfigs).Methods("GET")
 
-	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/api/subs", getAllSubs).Methods("GET")
-	r.HandleFunc("/api/cleaneventtypes", getAllCleanEventTypes).Methods("GET")
+	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/api/{ns}/subs/{name}", getSub).Methods("GET")
 	r.HandleFunc("/api/{ns}/subs/{name}", putSub).Methods("PUT")
 	r.HandleFunc("/api/{ns}/subs/{name}", delSub).Methods("DELETE")
@@ -64,6 +63,8 @@ func handleRequests() {
 	r.HandleFunc("/api/{ns}/funcs/{name}/logs", getFunctionLogs).Methods("GET")
 
 	r.HandleFunc("/api/publishEvent", publishEvent).Methods("POST")
+
+	r.HandleFunc("/api/cleaneventtypes", getAllCleanEventTypes).Methods("GET")
 
 	log.Printf("Server listening on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", r))
@@ -523,8 +524,13 @@ func getFunctionLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var prettyData string
+	for _, d := range logsData {
+		prettyData = d
+	}
+
 	// Convert response to bytes
-	data, err := json.Marshal(logsData)
+	data, err := json.Marshal(prettyData)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -600,10 +606,6 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 	ret.Close()
 
 	w.WriteHeader(response.StatusCode)
-}
-
-func missingNameErr(object string) error {
-	return fmt.Errorf("can't create %s, missing 'name'", object)
 }
 
 func contains(s []string, str string) bool {
