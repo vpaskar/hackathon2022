@@ -7,22 +7,31 @@ import { KubeConfig } from "../../api/kubeConfig";
 const kubeConfigClient = new KubeConfig();
 
 function KubeconfigReader(props) {
-  const [textValue, setTextValue] = useState(localStorage["kubeconfigPath"]);
+  const [textValue, setTextValue] = useState("");
   const gotoEditor = () => {
     props.history.push("/editor");
     window.location.reload();
   }
 
-  const onTextChange = e => setTextValue(e.target.value);
-  const handleSubmit = () => {
-    kubeConfigClient.set(textValue);
-    // validate and if ok then redirect else show error
-    gotoEditor();
+  const onTextChange = e => {
+    setTextValue(e.target.value);
+  }
+
+  const handleSubmit = async () => {
+    kubeConfigClient.set(textValue)
+    .then((result) => {
+        if (result === null) {
+          console.log("Invalid Config")
+        } else {
+          gotoEditor();
+        }
+      });
   };
+
   const handleReset = () => {
     setTextValue("");
-    localStorage["kubeconfigPath"] = ""
   }
+
   return (
     <div className="KubeconfigReader">
       <Box sx={{
