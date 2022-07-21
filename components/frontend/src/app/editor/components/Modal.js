@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import {Form} from './Form.js';
 import FocusTrap from 'focus-trap-react';
+import Typography from '@mui/material/Typography';
 
 export const Modal = ({
                           onClickOutside,
@@ -25,7 +26,21 @@ export const Modal = ({
                 onKeyDown={onKeyDown}
             >
                 <div className="modal-area" ref={modalRef}>
-                    <h3>{headerText}</h3>
+                    <Typography
+                        variant="h6"
+                        noWrap
+                        component="a"
+                        sx={{
+                            mr: 2,
+                            display: { xs: 'none', md: 'flex' },
+                            fontFamily: 'monospace',
+                            fontWeight: 700,
+                            letterSpacing: '.1rem',
+                            color: 'inherit',
+                        }}
+                    >
+                        {headerText}
+                    </Typography>
                     <button
                         ref={buttonRef}
                         aria-label="Close Modal"

@@ -7,6 +7,8 @@ import TriggerButton from "./components/TriggerButton";
 import Modal from "./components/Modal";
 import {Function} from "../../api/function";
 import {Subscription} from "../../api/subscription";
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
 
 const subClient = new Subscription();
 const funcClient = new Function();
@@ -64,8 +66,7 @@ const subFields = [
     {
         name: 'eventVersion',
         label: 'Event version',
-        type: 'select',
-        options: ['v1', 'v2', 'v3']
+        type: 'text-input',
     },
 ];
 
@@ -256,10 +257,24 @@ const Editor = () => {
 
     return (
         <div>
-            <h3>Playground </h3>
-            <p className="playground-info">
-                Info about the playground
-            </p>
+            <Typography
+                    variant="h6"
+                    noWrap
+                    component="a"
+                    sx={{
+                        justifyContent: "center",
+                        mr: 2,
+                        display: { xs: 'none', md: 'flex' },
+                        fontFamily: 'monospace',
+                        fontWeight: 700,
+                        letterSpacing: '.3rem',
+                        color: 'inherit',
+                        textDecoration: 'underline',
+                        lineHeight: 3,
+                    }}
+                    >
+                    Eventing Playground with Kyma
+                </Typography>
             <div id="form-container" className="hidden">
                 {showSubForm === true && subscriptionModal}
                 {showFuncForm === true && functionModal}
@@ -267,7 +282,7 @@ const Editor = () => {
             <Xwrapper>
                 <div className="canvasStyle" id="canvas" onClick={() => handleSelect(null)}>
                     <div className="toolboxMenu">
-                        <h3>Choose the resource with Drag & Drop</h3>
+                        <h3>Drag & Drop the resource</h3>
                         <div className="toolboxContainer">
                             {shapes.map((shape) => (
                                 <div
