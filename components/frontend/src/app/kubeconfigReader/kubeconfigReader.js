@@ -3,11 +3,14 @@ import './kubeconfigReader.css';
 import {TextField} from "@mui/material";
 import {Button, Box, Typography, Stack, FormControl} from "@mui/material";
 import { KubeConfig } from "../../api/kubeConfig";
+import Alert from '@mui/material/Alert';
 
 const kubeConfigClient = new KubeConfig();
 
 function KubeconfigReader(props) {
   const [textValue, setTextValue] = useState("");
+  const [isError, setError] = useState(false);
+
   const gotoEditor = () => {
     props.history.push("/editor");
     window.location.reload();
@@ -21,8 +24,9 @@ function KubeconfigReader(props) {
     kubeConfigClient.set(textValue)
     .then((result) => {
         if (result === null) {
-          console.log("Invalid Config")
+          setError(true);
         } else {
+          setError(false);
           gotoEditor();
         }
       });
@@ -30,6 +34,7 @@ function KubeconfigReader(props) {
 
   const handleReset = () => {
     setTextValue("");
+    setError(false);
   }
 
   return (
@@ -69,10 +74,19 @@ function KubeconfigReader(props) {
           label="Kubeconfig content"
           multiline
           rows={10}
+          value={textValue}
           onChange={onTextChange}
         />
         </FormControl>
       </Box>
+      {isError && <Box sx={{
+          display: 'flex',
+          m: 1,
+          p: 1,
+          justifyContent: 'center',
+        }}>
+      <Alert severity="error">Invalid Kubeconfig!</Alert>
+      </Box>}
       <Box sx={{
           display: 'flex',
           m: 1,
