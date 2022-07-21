@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: mfaizan21/skydivers-frontend:v0.0.1
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+          - name: BACKEND_URL
+            value: backend.skydivers.svc.cluster.local
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+---
+apiVersion: gateway.kyma-project.io/v1alpha1
+kind: APIRule
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  service:
+    host: frontend
+    name: frontend
+    port: 80
+  gateway: kyma-system/kyma-gateway
+  rules:
+    - path: /.*
+      methods: ["GET","POST", "PUT", "DELETE"]
+      accessStrategies:
+        - handler: noop
+      mutators: []
