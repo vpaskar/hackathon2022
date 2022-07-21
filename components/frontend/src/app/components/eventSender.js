@@ -9,8 +9,10 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box'
 import { CleanEventTypes } from "../../api/cleanEventTypes";
+import { Publisher } from "../../api/publisher";
 
 const cleanEventTypesClient = new CleanEventTypes();
+const publisherClient = new Publisher();
 
 export default function EventSender(props) {
   const [eventTypeList, setEventTypeList] = React.useState([]);
@@ -24,6 +26,15 @@ export default function EventSender(props) {
   const handleChange = (event) => {
     setEventType(event.target.value);
   };
+
+  const handleSendEvent = () => {
+    if (eventType !== "") { 
+      publisherClient.publishEvent(eventType, value)
+        .then((res) => {
+          props.setShouldUpdateLogs(true);
+        });
+    }
+  }
 
   React.useEffect(() => {
     let mounted = true;
@@ -92,7 +103,7 @@ export default function EventSender(props) {
         <FormHelperText>Enter Event Data</FormHelperText>
       </FormControl>
       <FormControl sx={{ m: 2, minWidth: 120 }}>
-        <Button variant="contained" size="large">Send Event</Button>
+        <Button variant="contained" size="large" onClick={handleSendEvent}>Send Event</Button>
       </FormControl>
       </Box>
     </div>

@@ -11,7 +11,8 @@
     "read": "/api/{ns}/funcs/{name}",
     "update": "/api/{ns}/funcs/{name}",
     "delete": "/api/{ns}/funcs/{name}",
-    "list": "/api/funcs"
+    "list": "/api/funcs",
+    "logs": "/api/{ns}/funcs/{name}/logs"
   },
   "kubeConfig": {
     "set": "api/kubeconfig/test"
@@ -20,7 +21,7 @@
     "read": "/api/logs/read"
   },
   "publisher": {
-    "publish": "/api/publisher/publish"
+    "publish": "/api/publishEvent"
   },
   "cleanEventTypes": {
     "list": "/api/cleaneventtypes?ns=-A"

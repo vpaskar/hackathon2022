@@ -12,15 +12,15 @@ import { Function } from "../../api/function";
 
 const functionClient = new Function();
 
-const TerminalController = (props = {}) => {
-  const [terminalLineData] = useState([
+const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
+  const [terminalLineData, setTerminalLineData] = useState([
     {type: LineType.Input, value: 'Log line 1'},
   ]);
 
   const [terminalHeader, setTerminalHeader] = useState("Function Logs");
   const [functionList, setFunctionList] = useState([]);
   const [func, setFunc] = useState("");
-  //const [funcNamespace, setFuncNamespace] = useState("");
+  const [funcNamespace, setFuncNamespace] = useState("tunas-testing");
 
   useEffect(() => {
     let mounted = true;
@@ -33,9 +33,21 @@ const TerminalController = (props = {}) => {
     return () => mounted = false;
   }, [])
 
+  const getLogs = (func, funcNamespace) => {
+    functionClient.logs(func, funcNamespace)
+        .then(items => {
+            console.log(items.data["test-2cq6m-7dd64849b4-hbk4j"]);
+            setTerminalLineData([
+                {type: LineType.Output, value: items.data[["test-2cq6m-7dd64849b4-hbk4j"]]},
+            ])
+            setShouldUpdateLogs(false);
+        })
+  };
+
   const handleChange = (event) => {
-    setTerminalHeader("Function logs from " + event.target.value);
     setFunc(event.target.value);
+    setTerminalHeader("Function logs from " + event.target.value);
+    getLogs(event.target.value, funcNamespace);
   };
   
   return (
@@ -90,6 +102,8 @@ const TerminalController = (props = {}) => {
         classname={styles}
         colorMode={ ColorMode.Dark }  
         lineData={ terminalLineData } />
+
+      {shouldUpdateLogs && getLogs(func, funcNamespace) && console.log("here!")}
     </div>
   )
 };

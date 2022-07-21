@@ -27,6 +27,10 @@ export class Function {
         return await apiClient.get(this.getListEndpoint())
     }
 
+    logs(name, namespace) {
+        return apiClient.get(this.getLogsEndpoint(namespace, name))
+    }
+
     validateData(data) {
         const message = "Function validation failed: "
         if (!data.name) {
@@ -62,5 +66,9 @@ export class Function {
 
     getListEndpoint() {
         return backendPath +  this.getFunctionRoutes().list
+    }
+
+    getLogsEndpoint(namespace, name) {
+        return backendPath +  this.getFunctionRoutes().logs.replace("{ns}", namespace).replace("{name}", name)
     }
 }
