@@ -1,9 +1,6 @@
 .absolute {
   position: absolute;
 }
-.hoverMarker:hover {
-  background: greenyellow;
-}
 .switchIcon {
   top: 0;
   width: 50px;
@@ -37,4 +34,13 @@
   float: right;
   cursor: no-drop;
   margin: 5px;
+  width: 30px;
+  height: 30px;
+}
+
+.status-false {
+  background-color: coral !important;
+}
+.status-true {
+  background-color: greenyellow !important;
 }

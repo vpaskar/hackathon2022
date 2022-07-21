@@ -79,6 +79,7 @@ const Box = (props) => {
                     <li>Namespace: {sub.namespace}</li>
                     <li>Sink: {sub.sink}</li>
                     <li>Event Type: {sub.eventType}</li>
+                    <li>Ready: {sub.ready}</li>
                 </ul>
             </div>
             fields = subFields
@@ -102,7 +103,7 @@ const Box = (props) => {
             <Draggable bounds="parent" onDrag={handleDrag}>
                 <div
                     ref={props.box.reference}
-                    className={`${props.box.type} ${props.position} hoverMarker`}
+                    className={`${props.box.type} ${props.position}  ${props.classes} hoverMarker`}
                     style={{
                         left: props.box.x,
                         top: props.box.y,

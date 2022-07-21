@@ -204,6 +204,7 @@ const Editor = () => {
                     namespace: subscription.metadata.namespace,
                     sink: subscription.spec.sink,
                     eventType: subscription.spec.filter.filters[0].eventType.value,
+                    ready: subscription.status.ready,
                     type: "subscription",
                 };
                 setSubscriptions(subscriptions => [...subscriptions, newSub])
@@ -292,7 +293,7 @@ const Editor = () => {
                         >
                             <h4>Subscription Area</h4>
                             {subscriptions.map((subscription) => (
-                                <Box {...boxProps} key={subscription.name} className="sub-box" box={subscription}
+                                <Box {...boxProps} key={subscription.name} classes={`status-${subscription.ready}`} box={subscription}
                                      position="static" sidePos="left"/>
                             ))}
                         </div>
