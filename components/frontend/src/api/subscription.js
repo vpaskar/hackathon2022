@@ -2,29 +2,28 @@ const {getBackendPath, getRoutes} = require("../config/config");
 const ApiClient = require("./client");
 const backendPath = getBackendPath()
 const routes = getRoutes();
-const apiClient = new ApiClient();
 
 class Subscription {
     create(data) {
         this.validateData(data)
-        return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
+        return ApiClient.get(this.getCreateEndpoint(data.namespace, data.name), data)
     }
 
     read(namespace, name) {
-        return apiClient.get(this.getReadEndpoint(namespace, name))
+        return ApiClient.get(this.getReadEndpoint(namespace, name))
     }
 
     update(name, namespace, data) {
         this.validateData(data)
-        return apiClient.put(this.getUpdateEndpoint(data.namespace, data.name), data)
+        return ApiClient.put(this.getUpdateEndpoint(data.namespace, data.name), data)
     }
 
     remove(namespace, name) {
-        return apiClient.del(this.getRemoveEndpoint(namespace, name))
+        return ApiClient.del(this.getRemoveEndpoint(namespace, name))
     }
 
     list() {
-        return apiClient.get(this.getListEndpoint())
+        return ApiClient.get(this.getListEndpoint())
     }
 
     validateData(data) {

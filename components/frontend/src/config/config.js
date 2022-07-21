@@ -5,7 +5,10 @@ function getRoutes(){
 }
 
 function getBackendPath(){
-
+    const backendHost = process.env.BACKEND_HOST
+    if (!backendHost) {
+        // throw new Error("Cannot fetch the backend host")
+    }
     return backendHost;
 }
 

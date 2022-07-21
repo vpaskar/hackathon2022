@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.9.3",
     "@emotion/styled": "^11.9.3",
+    "@mui/icons-material": "^5.8.4",
     "@mui/material": "^5.9.1",
     "@storybook/react": "^6.5.9",
     "@testing-library/jest-dom": "^5.16.4",
@@ -21,6 +22,7 @@
     "react-numeric-input": "^2.2.3",
     "react-router-dom": "^6.3.0",
     "react-scripts": "5.0.1",
+    "react-terminal-ui": "^0.2.1",
     "react-xarrows": "^2.0.2",
     "web-vitals": "^2.1.4"
   },
