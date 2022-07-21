@@ -8,19 +8,44 @@ import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box'
+import { CleanEventTypes } from "../../api/cleanEventTypes";
+import { Publisher } from "../../api/publisher";
+
+const cleanEventTypesClient = new CleanEventTypes();
+const publisherClient = new Publisher();
 
 export default function EventSender(props) {
-  const [age, setAge] = React.useState('');
+  const [eventTypeList, setEventTypeList] = React.useState([]);
+  const [eventType, setEventType] = React.useState("");
   const [value, setValue] = React.useState('foo:bar');
 
   const handleChangeText = (event) => {
     setValue(event.target.value);
   };
 
-
   const handleChange = (event) => {
-    setAge(event.target.value);
+    setEventType(event.target.value);
   };
+
+  const handleSendEvent = () => {
+    if (eventType !== "") { 
+      publisherClient.publishEvent(eventType, value)
+        .then((res) => {
+          props.setShouldUpdateLogs(true);
+        });
+    }
+  }
+
+  React.useEffect(() => {
+    let mounted = true;
+    cleanEventTypesClient.list()
+      .then(items => {
+        if(mounted) {
+          setEventTypeList(items.data);
+        }
+      })
+    return () => mounted = false;
+  }, [])
 
   return (
     <div>
@@ -58,16 +83,13 @@ export default function EventSender(props) {
         <Select
           labelId="demo-simple-select-helper-label"
           id="demo-simple-select-helper"
-          value={age}
+          value={eventType}
           label="Event Type"
           onChange={handleChange}
         >
-          <MenuItem value="">
-            <em>None</em>
-          </MenuItem>
-          <MenuItem value={10}>Ten</MenuItem>
-          <MenuItem value={20}>Twenty</MenuItem>
-          <MenuItem value={30}>Thirty</MenuItem>
+          {eventTypeList.map((eventType, id) => (
+               <MenuItem key={id} value={eventType}>{eventType}</MenuItem>
+          ))}
         </Select>
         <FormHelperText>Select Event Type</FormHelperText>
       </FormControl>
@@ -81,7 +103,7 @@ export default function EventSender(props) {
         <FormHelperText>Enter Event Data</FormHelperText>
       </FormControl>
       <FormControl sx={{ m: 2, minWidth: 120 }}>
-        <Button variant="contained" size="large">Send Event</Button>
+        <Button variant="contained" size="large" onClick={handleSendEvent}>Send Event</Button>
       </FormControl>
       </Box>
     </div>

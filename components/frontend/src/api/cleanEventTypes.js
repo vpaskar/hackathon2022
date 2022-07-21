@@ -1,10 +1,10 @@
 const {getBackendPath, getRoutes} = require("../config/config");
-const ApiClient = require("./client");
+const { ApiClient } = require("./client");
 const backendPath = getBackendPath()
 const routes = getRoutes();
 const apiClient = new ApiClient();
 
-class CleanEventTypes {
+export class CleanEventTypes {
     list() {
         return apiClient.get(this.getListEndpoint())
     }
@@ -27,5 +27,3 @@ class CleanEventTypes {
         return backendPath + "/" + this.getCleanEventTypesRoutes().list
     }
 }
-
-export default Function;

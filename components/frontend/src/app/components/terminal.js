@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import Terminal, { ColorMode, LineType } from 'react-terminal-ui';
 import styles from "./overrides.css";
 import FormHelperText from '@mui/material/FormHelperText';
@@ -8,29 +8,47 @@ import Typography from '@mui/material/Typography';
 import InputLabel from '@mui/material/InputLabel';
 import MenuItem from '@mui/material/MenuItem';
 import Box from '@mui/material/Box';
+import { Function } from "../../api/function";
 
-const TerminalController = (props = {}) => {
-  const [terminalLineData] = useState([
-    {type: LineType.Input, value: 'Log line 1'},
+const functionClient = new Function();
+
+const TerminalController = ({shouldUpdateLogs, setShouldUpdateLogs}) => {
+  const [terminalLineData, setTerminalLineData] = useState([
+    {type: LineType.Input, value: ''},
   ]);
 
   const [terminalHeader, setTerminalHeader] = useState("Function Logs");
+  const [functionList, setFunctionList] = useState([]);
+  const [func, setFunc] = useState("");
+  const [funcNamespace, setFuncNamespace] = useState("");
 
-//   const [functionList, setFunctionList] = useState([]);
+  useEffect(() => {
+    let mounted = true;
+    functionClient.list()
+        .then(items => {
+        if(mounted) {
+            setFunctionList(items.data)
+        }
+        })
+    return () => mounted = false;
+  }, [])
 
-//   useEffect(() => {
-//    let mounted = true;
-//    Function.list()
-//      .then(items => {
-//        if(mounted) {
-//         setFunctionList(items)
-//        }
-//      })
-//    return () => mounted = false;
-//  }, [])
+  const getLogs = (func, funcNamespace) => {
+    functionClient.logs(func, funcNamespace)
+        .then(items => {
+            setTerminalLineData([
+                {type: LineType.Output, value: items.data},
+            ])
+            setShouldUpdateLogs(false);
+        })
+  };
 
   const handleChange = (event) => {
+    setFunc(event.target.value);
     setTerminalHeader("Function logs from " + event.target.value);
+    const nameSpace = functionList.find(ele => ele.name === event.target.value).namespace;
+    setFuncNamespace(nameSpace);
+    getLogs(event.target.value, nameSpace);
   };
   
   return (
@@ -69,13 +87,13 @@ const TerminalController = (props = {}) => {
         <Select
           labelId="demo-simple-select-helper-label"
           id="demo-simple-select-helper"
-          value={"age"}
+          value={func}
           label="Function"
           onChange={handleChange}
         >
-          <MenuItem value={"Function1"}>Function1</MenuItem>
-          <MenuItem value={"Function2"}>Function2</MenuItem>
-          <MenuItem value={"Function3"}>Function3</MenuItem>
+          {functionList.map((func, id) => (
+               <MenuItem key={id} value={func.name}>{func.name}</MenuItem>
+          ))}
         </Select>
         <FormHelperText>Select Function Name</FormHelperText>
       </FormControl>
@@ -85,6 +103,7 @@ const TerminalController = (props = {}) => {
         classname={styles}
         colorMode={ ColorMode.Dark }  
         lineData={ terminalLineData } />
+      {shouldUpdateLogs && getLogs(func, funcNamespace)}
     </div>
   )
 };

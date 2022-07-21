@@ -1,39 +1,48 @@
 import React from 'react';
+import Box from '@mui/material/Box';
+import TextField from '@mui/material/TextField';
+import styles from './Form.css';
+
+const style = {
+    bgcolor: 'background.paper',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+  };
 
 export const Form = ({onSubmit, fields}) => {
-    console.log(fields)
     const createElement = (field) => {
         switch (field.type) {
             case 'text-input':
                 return <div className="form-group">
-                    <label htmlFor={field.name}>{field.label}:</label>
-                    <input type="text" id={field.name} className="form-control" required="true"/>
+                   <TextField sx={{ m: 1, width: 400 }}
+                        key={field.name}
+                        id={field.name}
+                        required
+                        size="small"
+                        label={field.label}
+                    />
                 </div>
-            case 'select':
-                return <div className="form-group"><label htmlFor={field.name}>{field.label}</label>
-                    <select name={field.name} id={field.name} required="true">
-                        {field.options.map((option) => (
-                            <option value={option}>{option}</option>
-                        ))}
-                    </select></div>
         }
         return "";
     };
 
 
     return (
-        <form onSubmit={onSubmit}>
-            {
-                fields.map((field) => (
-                    createElement(field)
-                ))
-            }
-            <div className="form-group">
-                <button className="form-control btn btn-primary" type="submit">
-                    Submit
-                </button>
-            </div>
-        </form>
+        <Box sx={style}>
+            <form onSubmit={onSubmit}>
+                {
+                    fields.map((field) => (
+                        createElement(field)
+                    ))
+                }
+                <div className="form-group" align="center">
+                    <button class={styles.button} type="submit">
+                        Submit
+                    </button>
+                </div>
+            </form>
+        </Box>
     );
 };
 export default Form;

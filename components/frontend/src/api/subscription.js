@@ -5,9 +5,9 @@ const routes = getRoutes();
 const apiClient = new ApiClient();
 
 export class Subscription {
-    create(data) {
+    async create(data) {
         this.validateData(data)
-        return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
+        return await apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
     }
 
     read(namespace, name) {

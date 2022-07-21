@@ -4,14 +4,14 @@ const backendPath = getBackendPath()
 const routes = getRoutes();
 const apiClient = new ApiClient();
 
-class Function {
-    create(data) {
+export class Function {
+    async create(data) {
         this.validateData(data)
-        return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
+        return await apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
     }
 
-    read(namespace, name) {
-        return apiClient.get(this.getReadEndpoint(namespace, name))
+    async read(namespace, name) {
+        return await apiClient.get(this.getReadEndpoint(namespace, name))
     }
 
     update(name, namespace, data) {
@@ -19,12 +19,16 @@ class Function {
         return apiClient.put(this.getUpdateEndpoint(data.namespace, data.name), data)
     }
 
-    remove(namespace, name) {
-        return apiClient.del(this.getRemoveEndpoint(namespace, name))
+    async remove(namespace, name) {
+        return await apiClient.del(this.getRemoveEndpoint(namespace, name))
     }
 
     async list() {
         return await apiClient.get(this.getListEndpoint())
+    }
+
+    logs(name, namespace) {
+        return apiClient.get(this.getLogsEndpoint(namespace, name))
     }
 
     validateData(data) {
@@ -63,6 +67,15 @@ class Function {
     getListEndpoint() {
         return backendPath +  this.getFunctionRoutes().list
     }
-}
 
-export default Function;
+    getFunctionNameBySink(sink){
+        const regexp = /https*:\/\/([a-zA-Z\-0-9]*)\./g;
+        const array = [...sink.matchAll(regexp)];
+
+        return array.length === 0 ? null : array[0][1];
+    }
+
+    getLogsEndpoint(namespace, name) {
+        return backendPath +  this.getFunctionRoutes().logs.replace("{ns}", namespace).replace("{name}", name)
+    }
+}
