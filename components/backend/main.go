@@ -2,24 +2,28 @@ package main
 
 import (
 	"encoding/json"
-	"flag"
 	"fmt"
-	"log"
-	"net/http"
-	"path/filepath"
-
 	"github.com/gorilla/mux"
-	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/function"
-	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/homedir"
-
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
+	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/function"
+	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
+	"io"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/tools/clientcmd"
+	"log"
+	"net/http"
+	"reflect"
 )
 
-var subscriptionClient subscription.Client
+type K8sResourceClients struct {
+	subscriptionClient subscription.Client
+	functionClient function.Client
+}
+
+var K8sClients = make(map[string]*K8sResourceClients)
+var kubeconfigs = make(map[string]string)
+var defaultCluster = "default"
 
 var functionClient function.Client
 
@@ -34,27 +38,7 @@ type FunctionData struct {
 }
 
 func main() {
-	var kubeconfig *string
-	if home := homedir.HomeDir(); home != "" && false {
-		kubeconfig = flag.String("kubeconfig", filepath.Join(home, ".kube", "config"), "(optional) absolute path to the kubeconfig file")
-	} else {
-		kubeconfig = flag.String("kubeconfig", "/Users/faizan/kubeconfigs/kubeconfig--kymatunas--fzn-b1.yml", "absolute path to the kubeconfig file")
-	}
-
-	flag.Parse()
-
-	k8sConfig, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Create dynamic client (k8s)
-	dynamicClient := dynamic.NewForConfigOrDie(k8sConfig)
-
-	// setup clients
-	subscriptionClient = subscription.NewClient(dynamicClient)
-	functionClient = function.NewClient(dynamicClient)
-
+	// Start the server
 	handleRequests()
 }
 
@@ -62,7 +46,8 @@ func handleRequests() {
 	r := mux.NewRouter().StrictSlash(true)
 	r.Use(commonMiddleware)
 
-	r.HandleFunc("api/kubeconfig/set", putKubeconfig).Methods("POST")
+	r.HandleFunc("/api/kubeconfig/{name}", addKubeconfig).Methods("POST")
+	r.HandleFunc("/api/kubeconfigs", getKubeconfigs).Methods("GET")
 
 	r.HandleFunc("/api/{ns}/subs/{name}", postSub).Methods("POST")
 	r.HandleFunc("/api/subs", getAllSubs).Methods("GET")
@@ -75,6 +60,7 @@ func handleRequests() {
 	r.HandleFunc("/api{ns}/funcs/{name}", putFuncs).Methods("PUT")
 	r.HandleFunc("/api/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
+
 	log.Printf("Server listening on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", r))
 }
@@ -86,8 +72,73 @@ func commonMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func putKubeconfig(w http.ResponseWriter, r *http.Request) {
-	//TODO
+func getKubeconfigs(w http.ResponseWriter, r *http.Request) {
+	keys := reflect.ValueOf(kubeconfigs).MapKeys()
+
+	data, err := json.Marshal(keys)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Return response to user
+	_, err = w.Write(data)
+	if err != nil {
+		log.Printf("%s %s failed to write response: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
+
+func addKubeconfig(w http.ResponseWriter, r *http.Request) {
+	// Fetch data from URI
+	name := mux.Vars(r)["name"]
+
+	data, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	kc := string(data)
+	if kc == "" {
+		log.Printf("%s %s Invalid req body", r.Method, r.RequestURI)
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	kubeconfigs[name] = kc
+
+	k8sConfig, err := clientcmd.NewClientConfigFromBytes([]byte(kc))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	clientConfig, err := k8sConfig.ClientConfig()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Create dynamic client (k8s)
+	dynamicClient, err := dynamic.NewForConfig(clientConfig)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// setup clients
+	resourceClients := &K8sResourceClients{
+		subscriptionClient: subscription.NewClient(dynamicClient),
+		functionClient: function.NewClient(dynamicClient),
+	}
+
+	K8sClients[name] = resourceClients
+
+	kubeconfigs[defaultCluster] = kubeconfigs[name]
+	K8sClients[defaultCluster] = K8sClients[name]
+	w.WriteHeader(http.StatusOK)
 }
 
 func getAllSubs(w http.ResponseWriter, r *http.Request) {
@@ -101,7 +152,7 @@ func getAllSubs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get subscriptions from the k8s cluster
-	subsUnstructured, err := subscriptionClient.ListJson(namespace)
+	subsUnstructured, err := K8sClients[defaultCluster].subscriptionClient.ListJson(namespace)
 	if err != nil {
 		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -168,7 +219,7 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create subscription on the k8s cluster
-	_, err = subscriptionClient.CreateSubscription(*newSub)
+	_, err = K8sClients[defaultCluster].subscriptionClient.CreateSubscription(*newSub)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -182,7 +233,7 @@ func getSub(w http.ResponseWriter, r *http.Request) {
 	namespace := mux.Vars(r)["ns"]
 	name := mux.Vars(r)["name"]
 
-	subUnstructured, err := subscriptionClient.GetSubJson(name, namespace)
+	subUnstructured, err := K8sClients[defaultCluster].subscriptionClient.GetSubJson(name, namespace)
 	if err != nil {
 		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -256,7 +307,7 @@ func putSub(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create subscription on the k8s cluster
-	_, err = subscriptionClient.UpdateSubscription(*newSub)
+	_, err = K8sClients[defaultCluster].subscriptionClient.UpdateSubscription(*newSub)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -271,7 +322,7 @@ func delSub(w http.ResponseWriter, r *http.Request) {
 	name := mux.Vars(r)["name"]
 	// check
 	// Delete subscription
-	err := subscriptionClient.DeleteSubscription(name, namespace)
+	err := K8sClients[defaultCluster].subscriptionClient.DeleteSubscription(name, namespace)
 	if err != nil {
 		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
