@@ -68,7 +68,7 @@ func handleRequests() {
 	r.HandleFunc("/api/{ns}/funcs/{name}", putFunction).Methods("PUT")
 	r.HandleFunc("/api/{ns}/funcs/{name}", delFunction).Methods("DELETE")
 
-	r.HandleFunc("/api/publish/event/{type}", publishEvent).Methods("POST")
+	r.HandleFunc("/api/publishEvent", publishEvent).Methods("POST")
 
 	log.Printf("Server listening on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", r))
@@ -516,22 +516,14 @@ func delFunction(w http.ResponseWriter, r *http.Request) {
 }
 
 func publishEvent(w http.ResponseWriter, r *http.Request) {
-	eventType := mux.Vars(r)["type"]
-
-	log.Printf("%s", eventType)
-
 	options := []*forwarder.Option{
 		{
 			// https://github.com/anthhub/forwarder
 			// if local port isn't provided, forwarder will generate a random port number
-			// LocalPort: 8081,
-			//
 			// if target port isn't provided, forwarder find the first container port of the pod or service
-			// RemotePort: 80,
-			// the local port for forwarding
-			LocalPort: 	9090,
+			LocalPort: 	9091,
 			// the k8s pod port
-			RemotePort: 80,
+			RemotePort: 8080,
 			// the forwarding service name
 			ServiceName: "eventing-publisher-proxy",
 			// the k8s source string, eg: svc/my-nginx-svc po/my-nginx-666
@@ -549,7 +541,7 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// remember to close the forwarding
+	//// remember to close the forwarding
 	defer ret.Close()
 
 	// wait forwarding ready
@@ -560,13 +552,31 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("ports: %+v\n", ports)
+
+	fmt.Printf("port-forward started to ports: %+v\n", ports)
 
 	// forward the event to EPP
+	newRequest, err := http.NewRequest("POST", "http://localhost:9091/publish", r.Body)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	newRequest.Header = r.Header.Clone()
 
+	client := &http.Client{}
+	response, err := client.Do(newRequest)
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	defer response.Body.Close()
 
+	// close the forwarding
+	ret.Close()
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(response.StatusCode)
 }
 
 func missingNameErr(object string) error {

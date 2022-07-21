@@ -39,4 +39,5 @@ Update Subscription: PUT /api/{ns}/subs/{name}
                 "eventVersion": "v1"
             }
 
+Publish Event: POST /api/publishEvent
 ```
