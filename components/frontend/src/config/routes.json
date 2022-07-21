@@ -24,6 +24,10 @@
   },
   "cleanEventTypes": {
     "list": "/api/cleaneventtypes?ns=-A"
+  },
+  "frontEndPath": {
+    "editor": "/editor",
+    "sendAndReceive": "/sendAndRecieve",
+    "about": "/about"
   }
-
 }
