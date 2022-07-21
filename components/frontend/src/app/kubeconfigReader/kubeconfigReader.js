@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import './kubeconfigReader.css';
 import {TextField} from "@mui/material";
 import {Button, Box, Typography, Stack, FormControl} from "@mui/material";
+import { KubeConfig } from "../../api/kubeConfig";
+
+const kubeConfigClient = new KubeConfig();
 
 function KubeconfigReader(props) {
   const [textValue, setTextValue] = useState(localStorage["kubeconfigPath"]);
-
   const gotoEditor = () => {
     props.history.push("/editor");
     window.location.reload();
@@ -13,7 +15,7 @@ function KubeconfigReader(props) {
 
   const onTextChange = e => setTextValue(e.target.value);
   const handleSubmit = () => {
-    localStorage["kubeconfigPath"] = textValue;
+    kubeConfigClient.set(textValue);
     // validate and if ok then redirect else show error
     gotoEditor();
   };

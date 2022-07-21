@@ -15,8 +15,8 @@ import { getRoutes } from "../../config/config";
 import Linker from '../components/link';
 
 const routes = getRoutes().frontEndPath;
-const pages = [{name: 'Subscribe to Events', link: routes.editor}, {name: 'Send Events', link: routes.sendAndReceive}, {name:'About Us', link: routes.about}];
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+const pages = [{name: 'Subscribe to Events', link: routes.editor}, {name: 'Send Events', link: routes.sendAndReceive}, {name:'About', link: routes.about}];
+const settings = ['Logout'];
 
 const ResponsiveAppBar = () => {
   const [anchorElUser, setAnchorElUser] = React.useState(null);

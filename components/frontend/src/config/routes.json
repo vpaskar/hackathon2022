@@ -14,7 +14,7 @@
     "list": "/api/funcs"
   },
   "kubeConfig": {
-    "set": "api/kubeConfig/set"
+    "set": "api/kubeconfig/test"
   },
   "log": {
     "read": "/api/logs/read"
