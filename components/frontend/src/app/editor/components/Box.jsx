@@ -79,7 +79,6 @@ const Box = (props) => {
                     <li>Namespace: {sub.namespace}</li>
                     <li>Sink: {sub.sink}</li>
                     <li>Event Type: {sub.eventType}</li>
-                    <li>Ready: {sub.ready}</li>
                 </ul>
             </div>
             fields = subFields
