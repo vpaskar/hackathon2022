@@ -1,26 +1,15 @@
 // api client to interact with backend
 const axios = require('axios').default;
 
-class ApiClient {
-    static get(path) {
-        axios.get(path, {
-                headers: ApiClient.getHeaders()
+export class ApiClient {
+    async get(path) {
+        return await axios.get(path, {
+                headers: this.getHeaders()
             }
-        )
-            .then(function (response) {
-                // handle success
-                console.log(response);
-            })
-            .catch(function (error) {
-                // handle error
-                console.log(error);
-            })
-            .then(function () {
-                // always executed
-            });
+        );
     }
 
-    static post(path, data) {
+    post(path, data) {
         axios.post(path, data, {
             headers: this.getHeaders()
         })
@@ -33,7 +22,7 @@ class ApiClient {
     }
 
 
-    static put(path, data) {
+    put(path, data) {
         axios.put(path, data, {
             headers: this.getHeaders()
         })
@@ -46,7 +35,7 @@ class ApiClient {
     }
 
 
-    static del(path) {
+    del(path) {
         axios.delete(path, {
             headers: this.getHeaders()
         })
@@ -58,11 +47,9 @@ class ApiClient {
             });
     }
 
-    static getHeaders() {
+    getHeaders() {
         return {
             'content-type': 'application/json'
         }
     }
 }
-
-export default ApiClient;

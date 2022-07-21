@@ -41,7 +41,7 @@ export const Modal = ({
                         </svg>
                     </button>
                     <div className="modal-body">
-                        <Form onSubmit={onSubmit} fields={fields}/>
+                        {fields.length > 0 && <Form onSubmit={onSubmit} fields={fields}/>}
                     </div>
                 </div>
             </aside>

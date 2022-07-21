@@ -5,7 +5,7 @@ function getRoutes(){
 }
 
 function getBackendPath(){
-    const backendHost = process.env.BACKEND_HOST
+    const backendHost = "https://backend.fzn-b1.kymatunas.shoot.canary.k8s-hana.ondemand.com"//process.env.BACKEND_HOST
     if (!backendHost) {
         // throw new Error("Cannot fetch the backend host")
     }

@@ -5,7 +5,7 @@ import { useXarrow } from 'react-xarrows';
 
 const Box = (props) => {
   const updateXarrow = useXarrow();
-  // const handleDrag = () => props.setBoxes([...props.boxes]);
+  const handleDrag = () => props.setBoxes([...props.boxes]);
   const handleClick = (e) => {
     e.stopPropagation(); //so only the click event on the box will fire on not on the container itself
     if (props.actionState === 'Normal') {
@@ -24,13 +24,6 @@ const Box = (props) => {
       );
     }
   };
-
-const handleDrag = (e) => {
-    // e.stopPropagation(); //so only the click event on the box will fire on not on the container itself
-    // console.log('dragging the', e)
-    console.log(props)
-  };
-
   let background = null;
   if (props.selected && props.selected.id === props.box.id) {
     background = 'rgb(200, 200, 200)';

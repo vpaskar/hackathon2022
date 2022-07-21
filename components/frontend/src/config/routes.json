@@ -11,7 +11,7 @@
     "read": "/api/{ns}/funcs/{name}",
     "update": "/api/{ns}/funcs/{name}",
     "delete": "/api/{ns}/funcs/{name}",
-    "list": "api/funcs"
+    "list": "/api/funcs"
   },
   "kubeConfig": {
     "set": "api/kubeConfig/set"
