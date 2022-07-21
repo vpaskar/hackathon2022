@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	eventingv1alpha1 "github.com/kyma-project/kyma/components/eventing-controller/api/v1alpha1"
 	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
+	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/forwarder"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/function"
 	"github.com/vladislavpaskar/hackathon2022/components/backend/clients/subscription"
 	"io"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"log"
 	"net/http"
@@ -22,6 +25,7 @@ type K8sResourceClients struct {
 }
 
 var K8sClients = make(map[string]*K8sResourceClients)
+var k8sClientConfigs = make(map[string]*rest.Config)
 var kubeconfigs = make(map[string]string)
 var defaultCluster = "default"
 
@@ -62,6 +66,7 @@ func handleRequests() {
 	r.HandleFunc("/api{ns}/funcs/{name}", putFuncs).Methods("PUT")
 	r.HandleFunc("/api/{ns}/funcs/{name}", delFuncs).Methods("DELETE")
 
+	r.HandleFunc("/api/publish/event/{type}", publishEvent).Methods("POST")
 
 	log.Printf("Server listening on port 8000 ...")
 	log.Fatal(http.ListenAndServe(":8000", r))
@@ -123,6 +128,7 @@ func addKubeconfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	k8sClientConfigs[name] = clientConfig
 	// Create dynamic client (k8s)
 	dynamicClient, err := dynamic.NewForConfig(clientConfig)
 	if err != nil {
@@ -433,6 +439,56 @@ func putFuncs(w http.ResponseWriter, r *http.Request) {
 }
 func delFuncs(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func publishEvent(w http.ResponseWriter, r *http.Request) {
+	eventType := mux.Vars(r)["type"]
+
+	log.Printf("%s", eventType)
+
+	options := []*forwarder.Option{
+		{
+			// https://github.com/anthhub/forwarder
+			// if local port isn't provided, forwarder will generate a random port number
+			// LocalPort: 8081,
+			//
+			// if target port isn't provided, forwarder find the first container port of the pod or service
+			// RemotePort: 80,
+			// the local port for forwarding
+			LocalPort: 	9090,
+			// the k8s pod port
+			RemotePort: 80,
+			// the forwarding service name
+			ServiceName: "eventing-publisher-proxy",
+			// the k8s source string, eg: svc/my-nginx-svc po/my-nginx-666
+			// the Source field will be parsed and override ServiceName or RemotePort field
+			//Source: "svc/my-nginx-66b6c48dd5-ttdb2",
+			// namespace default is "default"
+			Namespace: "kyma-system",
+		},
+	}
+
+	ret, err := forwarder.Forwarders(context.Background(), options, k8sClientConfigs[defaultCluster])
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// remember to close the forwarding
+	defer ret.Close()
+
+	// wait forwarding ready
+	// the remote and local ports are listed
+	ports, err := ret.Ready()
+	if err != nil {
+		log.Printf("%s %s failed: %v", r.Method, r.RequestURI, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Printf("ports: %+v\n", ports)
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func missingNameErr(object string) error {
