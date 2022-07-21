@@ -34,7 +34,9 @@ var functionClient function.Client
 
 type SubscriptionData struct {
 	Sink  string   `json:"sink"`
-	Types []string `json:"types"`
+	AppName  string   `json:"appName"`
+	EventName  string   `json:"eventName"`
+	EventVersion  string   `json:"eventVersion"`
 }
 
 type FunctionData struct {
@@ -145,6 +147,7 @@ func addKubeconfig(w http.ResponseWriter, r *http.Request) {
 	K8sClients[name] = resourceClients
 
 	kubeconfigs[defaultCluster] = kubeconfigs[name]
+	k8sClientConfigs[defaultCluster] = k8sClientConfigs[name]
 	K8sClients[defaultCluster] = K8sClients[name]
 	w.WriteHeader(http.StatusOK)
 }
@@ -244,6 +247,10 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var eventTypes []string
+	newType := fmt.Sprintf("sap.custom.kyma.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
+	eventTypes = append(eventTypes, newType)
+
 	// Initialize a subscription object
 	newSub := &eventingv1alpha1.Subscription{
 		Spec: eventingv1alpha1.SubscriptionSpec{
@@ -256,7 +263,7 @@ func postSub(w http.ResponseWriter, r *http.Request) {
 	newSub.Name = name
 	newSub.Namespace = namespace
 
-	for _, eventType := range newSubData.Types {
+	for _, eventType := range eventTypes {
 		eventFilter := &eventingv1alpha1.BEBFilter{
 			EventSource: &eventingv1alpha1.Filter{
 				Property: "source",
@@ -326,6 +333,10 @@ func putSub(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var eventTypes []string
+	newType := fmt.Sprintf("sap.custom.kyma.%s.%s.%s", newSubData.AppName, newSubData.EventName, newSubData.EventVersion)
+	eventTypes = append(eventTypes, newType)
+
 	// Initialize a subscription object
 	newSub := &eventingv1alpha1.Subscription{
 		Spec: eventingv1alpha1.SubscriptionSpec{
@@ -338,7 +349,7 @@ func putSub(w http.ResponseWriter, r *http.Request) {
 	newSub.Name = name
 	newSub.Namespace = namespace
 
-	for _, eventType := range newSubData.Types {
+	for _, eventType := range eventTypes {
 		eventFilter := &eventingv1alpha1.BEBFilter{
 			EventSource: &eventingv1alpha1.Filter{
 				Property: "source",
@@ -550,6 +561,10 @@ func publishEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	fmt.Printf("ports: %+v\n", ports)
+
+	// forward the event to EPP
+
+
 
 	w.WriteHeader(http.StatusOK)
 }

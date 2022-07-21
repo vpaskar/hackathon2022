@@ -24,10 +24,9 @@ Create Subscription: POST /api/{ns}/subs/{name}
        - Body: 
             {
                 "sink": "http://test.tunas-testing.svc.cluster.local",
-                "types": [
-                    "sap.kyma.custom.noapp.order.created.v1",
-                    "sap.kyma.custom.noapp.order.created.v2"
-                ]
+                "appName": "noapp"
+                "eventName": "order.created"
+                "eventVersion": "v1"
             }
 Update Subscription: PUT /api/{ns}/subs/{name}
     Request Body: 
@@ -35,10 +34,9 @@ Update Subscription: PUT /api/{ns}/subs/{name}
        - Body: 
             {
                 "sink": "http://test.tunas-testing.svc.cluster.local",
-                "types": [
-                    "sap.kyma.custom.noapp.order.created.v1",
-                    "sap.kyma.custom.noapp.order.created.v2"
-                ]
+                "appName": "noapp"
+                "eventName": "order.created"
+                "eventVersion": "v1"
             }
 
 ```

@@ -2,12 +2,11 @@ package function
 
 import (
 	"context"
-<<<<<<< HEAD
-=======
 	"encoding/json"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/util/retry"
 	"log"
 
->>>>>>> 5ec016f9d6c6dbfea9aefcc0587fac4abab10e7b
 	serverlessv1alpha1 "github.com/kyma-project/kyma/components/function-controller/pkg/apis/serverless/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -35,24 +34,6 @@ func (c Client) GetFnJson(name, namespace string) (*unstructured.Unstructured, e
 
 func (c Client) UpdateFunction(fn serverlessv1alpha1.Function) (*unstructured.Unstructured, error) {
 
-<<<<<<< HEAD
-	//mapInterfaceFn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&fn)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//retryErr := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-	//
-	//	result, getErr := c.GetFnJson(fn.Name, fn.Namespace)
-	//	if getErr != nil {
-	//		log.Printf("failed to get latest version of function: %v", getErr)
-	//		return err
-	//	}
-	//
-	//})
-
-	return nil, nil
-=======
 	mapInterfaceFn, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&fn)
 	if err != nil {
 		return nil, err
@@ -79,7 +60,6 @@ func (c Client) UpdateFunction(fn serverlessv1alpha1.Function) (*unstructured.Un
 	}
 
 	return c.GetFnJson(fn.Name, fn.Namespace)
->>>>>>> 5ec016f9d6c6dbfea9aefcc0587fac4abab10e7b
 }
 
 func GroupVersionResource() schema.GroupVersionResource {
