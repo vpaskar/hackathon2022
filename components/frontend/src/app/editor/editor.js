@@ -281,7 +281,7 @@ const Editor = () => {
             <Xwrapper>
                 <div className="canvasStyle" id="canvas" onClick={() => handleSelect(null)}>
                     <div className="toolboxMenu">
-                        <h3>Choose the resource with Drag & Drop</h3>
+                        <h3>Drag & Drop the resource</h3>
                         <div className="toolboxContainer">
                             {shapes.map((shape) => (
                                 <div
