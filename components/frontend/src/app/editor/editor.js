@@ -7,7 +7,7 @@ import {Xwrapper} from 'react-xarrows';
 import MenuWindow from './components/MenuWindow';
 import TriggerButton from "./components/TriggerButton";
 import Modal from "./components/Modal";
-import Function from "../../api/function";
+import { Function } from "../../api/function";
 import {Subscription} from "../../api/subscription";
 
 const subClient = new Subscription();

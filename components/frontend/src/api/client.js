@@ -9,9 +9,9 @@ export class ApiClient {
         );
     }
 
-    async post(path, data) {
+    async post(path, data, header) {
         return await axios.post(path, data, {
-            headers: this.getHeaders()
+            headers: header === undefined ? this.getHeaders() : header
         });
     }
 

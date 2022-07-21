@@ -4,7 +4,7 @@ const backendPath = getBackendPath()
 const routes = getRoutes();
 const apiClient = new ApiClient();
 
-class Function {
+export class Function {
     create(data) {
         this.validateData(data)
         return apiClient.post(this.getCreateEndpoint(data.namespace, data.name), data)
@@ -25,6 +25,10 @@ class Function {
 
     async list() {
         return await apiClient.get(this.getListEndpoint())
+    }
+
+    logs(name, namespace) {
+        return apiClient.get(this.getLogsEndpoint(namespace, name))
     }
 
     validateData(data) {
@@ -71,6 +75,8 @@ class Function {
 
         return(array[0][1]);
     }
-}
 
-export default Function;
+    getLogsEndpoint(namespace, name) {
+        return backendPath +  this.getFunctionRoutes().logs.replace("{ns}", namespace).replace("{name}", name)
+    }
+}

@@ -3,26 +3,40 @@ import './kubeconfigReader.css';
 import {TextField} from "@mui/material";
 import {Button, Box, Typography, Stack, FormControl} from "@mui/material";
 import { KubeConfig } from "../../api/kubeConfig";
+import Alert from '@mui/material/Alert';
 
 const kubeConfigClient = new KubeConfig();
 
 function KubeconfigReader(props) {
-  const [textValue, setTextValue] = useState(localStorage["kubeconfigPath"]);
+  const [textValue, setTextValue] = useState("");
+  const [isError, setError] = useState(false);
+
   const gotoEditor = () => {
     props.history.push("/editor");
     window.location.reload();
   }
 
-  const onTextChange = e => setTextValue(e.target.value);
-  const handleSubmit = () => {
-    kubeConfigClient.set(textValue);
-    // validate and if ok then redirect else show error
-    gotoEditor();
+  const onTextChange = e => {
+    setTextValue(e.target.value);
+  }
+
+  const handleSubmit = async () => {
+    kubeConfigClient.set(textValue)
+    .then((result) => {
+        if (result === null) {
+          setError(true);
+        } else {
+          setError(false);
+          gotoEditor();
+        }
+      });
   };
+
   const handleReset = () => {
     setTextValue("");
-    localStorage["kubeconfigPath"] = ""
+    setError(false);
   }
+
   return (
     <div className="KubeconfigReader">
       <Box sx={{
@@ -60,10 +74,19 @@ function KubeconfigReader(props) {
           label="Kubeconfig content"
           multiline
           rows={10}
+          value={textValue}
           onChange={onTextChange}
         />
         </FormControl>
       </Box>
+      {isError && <Box sx={{
+          display: 'flex',
+          m: 1,
+          p: 1,
+          justifyContent: 'center',
+        }}>
+      <Alert severity="error">Invalid Kubeconfig!</Alert>
+      </Box>}
       <Box sx={{
           display: 'flex',
           m: 1,
