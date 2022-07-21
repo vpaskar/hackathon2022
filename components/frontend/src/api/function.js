@@ -19,8 +19,8 @@ class Function {
         return apiClient.put(this.getUpdateEndpoint(data.namespace, data.name), data)
     }
 
-    remove(namespace, name) {
-        return apiClient.del(this.getRemoveEndpoint(namespace, name))
+    async remove(namespace, name) {
+        return await apiClient.del(this.getRemoveEndpoint(namespace, name))
     }
 
     async list() {
@@ -62,6 +62,14 @@ class Function {
 
     getListEndpoint() {
         return backendPath +  this.getFunctionRoutes().list
+    }
+
+    getFunctionNameBySink(sink){
+        const regexp = /https*:\/\/([a-zA-Z-]*)\./g;
+
+        const array = [...sink.matchAll(regexp)];
+
+        return(array[0][1]);
     }
 }
 

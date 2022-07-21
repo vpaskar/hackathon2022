@@ -27,6 +27,11 @@ const shapes = [
 
 const funcFields = [
     {
+        name: 'name',
+        label: 'Name',
+        type: 'text-input'
+    },
+    {
         name: 'namespace',
         label: 'Namespace',
         type: 'text-input'
@@ -34,6 +39,11 @@ const funcFields = [
 ];
 
 const subFields = [
+    {
+        name: 'name',
+        label: 'Name',
+        type: 'text-input'
+    },
     {
         name: 'namespace',
         label: 'Namespace',
@@ -63,17 +73,18 @@ const subFields = [
 ];
 
 const Editor = () => {
-    const [boxes, setBoxes] = useState([]);
+    const [subscriptions, setSubscriptions] = useState([]);
+    const [functions, setFunctions] = useState([]);
     const [lines, setLines] = useState([]);
 
-    // selected:{id:string,type:"arrow"|"box"}
     const [selected, setSelected] = useState(null);
     const [actionState, setActionState] = useState('Normal');
 
     const [showSubForm, setShowSubForm] = useState(false);
     const [showFuncForm, setShowFuncForm] = useState(false);
 
-    const [currentName, setCurrentName] = useState("");
+    const [pendingSub, setPendingSub] = useState({});
+    const [pendingFunc, setPendingFunc] = useState({});
 
     const handleSelect = (e) => {
         if (e === null) {
@@ -83,9 +94,15 @@ const Editor = () => {
     };
 
     const props = {
-        boxes,
-        setBoxes,
+        subscriptions,
+        setSubscriptions,
+        functions,
+        setFunctions,
         selected,
+        pendingSub,
+        setPendingSub,
+        pendingFunc,
+        setPendingFunc,
         handleSelect,
         actionState,
         setActionState,
@@ -98,8 +115,10 @@ const Editor = () => {
     };
 
     const boxProps = {
-        boxes,
-        setBoxes,
+        subscriptions,
+        setSubscriptions,
+        functions,
+        setFunctions,
         selected,
         handleSelect,
         actionState,
@@ -107,37 +126,25 @@ const Editor = () => {
         lines,
     };
 
-    const checkExistence = (id) => {
-        return [...boxes].map((b) => b.name).includes(id);
+    const handleSubscriptionDrop = (e) => {
+        let shapeToCreate = e.dataTransfer.getData('shape');
+        if (shapes.filter(shape => shape.name === shapeToCreate)) {
+            let currentSub = e.target.getBoundingClientRect();
+            setPendingSub(currentSub)
+            setShowSubForm(true)
+        }
     };
 
-    const handleDropDynamic = (e) => {
-        let fetchedShape = e.dataTransfer.getData('shape');
-        if (shapes.filter(shape => shape.name === fetchedShape)) {
-            const shape = shapes.find(shape => shape.name === fetchedShape)
-            let l = boxes.length;
-            while (checkExistence(shape.type + l)) l++;
-            let {x, y} = e.target.getBoundingClientRect();
-            const promptMessage = 'Enter ' + shape.name + ' name: '
-            const newName = prompt(promptMessage, shape.type + l);
-            setCurrentName(newName)
-            switch (shape.type) {
-                case 'subscription':
-                    setShowSubForm(true)
-                    break;
-                case 'function':
-                    setShowFuncForm(true)
-                    break;
-            }
-            if (newName) {
-                let newBox = {id: newName, x: x, y: y, type: shape.type,};
-                setBoxes([...boxes, newBox]);
-            }
+    const handleFunctionDrop = (e) => {
+        let shapeToCreate = e.dataTransfer.getData('shape');
+        if (shapes.filter(shape => shape.name === shapeToCreate)) {
+            let currentFunc = e.target.getBoundingClientRect();
+            setPendingFunc(currentFunc)
+            setShowFuncForm(true)
         }
     };
 
     // MODAL LOGIC
-
     const toggleScrollLock = () => {
         document.querySelector('html').classList.toggle('scroll-lock');
     };
@@ -150,20 +157,24 @@ const Editor = () => {
         setShowSubForm(false);
     };
 
-    const onSubModalSubmit = (event) => {
+    const onSubModalSubmit = async (event) => {
         event.preventDefault();
         const subPayload = {
-            name: currentName,
+            name: event.target.name.value,
             namespace: event.target.namespace.value,
             sink: event.target.sink.value,
             appName: event.target.appName.value,
             eventName: event.target.eventName.value,
             eventVersion: event.target.eventVersion.value,
+            x: pendingSub.x,
+            y: pendingSub.y,
         }
         try {
-            subClient.create(subPayload)
+            await subClient.create(subPayload)
+            setShowSubForm(false)
+            window.location.reload();
         } catch (e) {
-            console.log('cannot save the sub', e)
+            console.log('cannot save the subscription', e)
         }
     };
     const showFuncModal = () => {
@@ -174,16 +185,18 @@ const Editor = () => {
         setShowFuncForm(false);
     };
 
-    const onFuncModalSubmit = (event) => {
+    const onFuncModalSubmit = async (event) => {
         event.preventDefault();
         const funcPayload = {
-            name: currentName,
+            name: event.target.name.value,
             namespace: event.target.namespace.value,
         }
         try {
-            funcClient.create(funcPayload)
+            await funcClient.create(funcPayload)
+            setFunctions(functions => [...functions, funcPayload])
+            window.location.reload();
         } catch (e) {
-            console.log('cannot save the sub', e)
+            console.log('cannot save the function', e)
         }
     };
 
@@ -195,7 +208,7 @@ const Editor = () => {
             onSubmit={onSubModalSubmit}
             fields={subFields}
             closeModal={closeSubModal}
-            headerText={"Enter info for " + currentName}
+            headerText={"Enter info for subscription:"}
         />
     </div>
 
@@ -207,51 +220,55 @@ const Editor = () => {
             onSubmit={onFuncModalSubmit}
             fields={funcFields}
             closeModal={closeFuncModal}
-            headerText={"Enter info for " + currentName}
+            headerText={"Enter info for function:"}
         />
     </div>
 
     // subscription actions
     const getSubscriptions = async () => {
-        const editorBox = document.getElementById("boxesContainer")
-        const editorBoxRect = editorBox.getBoundingClientRect();
-
+        setSubscriptions([])
         const subscriptions = await subClient.list()
         subscriptions.data.items.map((subscription, i) => {
-            let newBox = {id: subscription.metadata.name, x: editorBoxRect.left*i, y: i * 50, type: "subscription",};
-            boxes.push(newBox)
+            let newSub = {
+                id: subscription.metadata.name,
+                name: subscription.metadata.name,
+                namespace: subscription.metadata.namespace,
+                sink: subscription.spec.sink,
+                eventType: subscription.spec.filter.filters[0].eventType.value,
+                type: "subscription",
+            };
+            setSubscriptions(subscriptions => [...subscriptions, newSub])
+            const connectedTo = funcClient.getFunctionNameBySink(newSub.sink)
+            const newLine = {
+                props: {
+                   start: newSub.name,
+                   end: connectedTo,
+                },
+            }
+            setLines(lines => [...lines, newLine])
+            // console.log("subscription %s is connected to function %s", newSub.name, connectedTo)
         })
-        console.log(boxes)
-        setBoxes(boxes)
-        console.log(boxes)
     };
 
 
-    // subscription actions
     const getFunctions = async () => {
-        const editorBox = document.getElementById("boxesContainer")
-        const editorBoxRect = editorBox.getBoundingClientRect();
-
+        setFunctions([])
         const functions = await funcClient.list()
-        functions.data.items.map((func, i) => {
-            let newBox = {id: func.metadata.name, x: editorBoxRect.left*i, y:100+ i * 50, type: "function",};
-            boxes.push(newBox)
+
+        functions.data.map((func, i) => {
+            let newBox = {
+                id: func.name,
+                namespace: func.namespace,
+                type: "function",
+            };
+            setFunctions(functions => [...functions, newBox])
+
         })
-        console.log(boxes)
-        setBoxes(boxes)
-        console.log(boxes)
     };
 
-    const MINUTE_MS = 5000;
-    // getSubscriptions().then(()=>console.log('Subscriptions\' list updated!'))
-    // getFunctions().then(()=>console.log('Functions\' list updated!'))
     useEffect(() => {
-        const interval = setInterval(() => {
-            setBoxes([])
-            // getSubscriptions().then(()=>console.log('Subscriptions\' list updated!'))
-            // getFunctions().then(()=>console.log('Functions\' list updated!'))
-        }, MINUTE_MS);
-        return () => clearInterval(interval); // This represents the unmount function, in which you need to clear your interval to prevent memory leaks.
+        getSubscriptions().then(() => console.log('Subscriptions\' list updated!'))
+        getFunctions().then(() => console.log('Functions\' list updated!'))
     }, [])
 
     return (
@@ -284,14 +301,28 @@ const Editor = () => {
                     </div>
                     <div
                         id="boxesContainer"
-                        className="boxesContainer"
-                        onDragOver={(e) => e.preventDefault()}
-                        onDrop={handleDropDynamic}>
+                        className="boxesContainer">
                         <h3>Playground area</h3>
-
-                        {boxes.map((box) => (
-                            <Box {...boxProps} key={box.id} box={box} position="absolute" sidePos="right"/>
-                        ))}
+                        <div
+                            className="subscription-container"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleSubscriptionDrop}
+                        >
+                            <h4>Subscription Area</h4>
+                            {subscriptions.map((subscription) => (
+                                <Box {...boxProps} className="sub-box" box={subscription} sidePos="right"/>
+                            ))}
+                        </div>
+                        <div
+                            className="function-container"
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={handleFunctionDrop}
+                        >
+                            <h4>Function Area</h4>
+                            {functions.map((func) => (
+                                <Box {...boxProps} className="sub-box" box={func} sidePos="right"/>
+                            ))}
+                        </div>
                     </div>
 
                     <TopBar {...props} />

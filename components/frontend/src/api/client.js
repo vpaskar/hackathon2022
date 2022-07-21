@@ -9,42 +9,24 @@ export class ApiClient {
         );
     }
 
-    post(path, data) {
-        axios.post(path, data, {
+    async post(path, data) {
+        return await axios.post(path, data, {
             headers: this.getHeaders()
-        })
-            .then(function (response) {
-                console.log(response);
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
+        });
     }
 
 
-    put(path, data) {
-        axios.put(path, data, {
+    async put(path, data) {
+        return await axios.put(path, data, {
             headers: this.getHeaders()
-        })
-            .then(function (response) {
-                console.log(response);
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
+        });
     }
 
 
-    del(path) {
-        axios.delete(path, {
+    async del(path) {
+       return await axios.delete(path, {
             headers: this.getHeaders()
-        })
-            .then(function (response) {
-                console.log(response);
-            })
-            .catch(function (error) {
-                console.log(error);
-            });
+        });
     }
 
     getHeaders() {

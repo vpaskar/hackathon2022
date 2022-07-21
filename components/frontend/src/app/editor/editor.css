@@ -24,24 +24,29 @@
 
 .function {
     background-color: lightgreen;
-    width: 200px;
-    height: 200px;
+    min-width: 50px;
+    min-height: 50px;
+    width: auto;
+    height: auto;
     line-height: 200px;
-    border-radius: 50%;
+    border-radius: 10%;
     font-size: 50px;
-    text-align: center;
+    text-align: center !important;
     cursor: grab;
+    margin: 15px;
 }
 
 .subscription {
     background-color: yellow;
-    height: 150px;
+    height: auto;
+    min-height: 50px;
     line-height: 150px;
     border-radius: 10%;
     padding: 10px;
     font-size: 50px;
     text-align: center;
     cursor: grab;
+    margin: 15px;
 }
 
 .interfacesBarStyle {
@@ -64,9 +69,12 @@
 }
 
 .boxesContainer {
+    height: auto;
+    padding: 15px;
     text-align: center;
-    height: 100%;
-    width: 1000px;
+    max-width: 1500px;
+    min-width: 1000px;
+    width: fit-content;
     border: solid black 1px;
     background-color: lightcyan;
 }
@@ -79,10 +87,10 @@
 .canvasStyle {
     display: flex;
     position: relative;
-    width: var(--canvasWidthVw);
-    height: var(--canvasHeightVh);
     background: white;
     color: black;
+    min-height: 800px;
+    height: auto;
 }
 
 /*.canvasContainerStyle {*/
@@ -239,5 +247,22 @@
 .scroll-lock {
     overflow: hidden;
     margin-right: 17px;
+}
+
+.sub-box {
+    margin: 25px;
+}
+
+.subscription-container{
+    width: 49%;
+    border: 1px black solid;
+    float: left;
+    min-height: 750px;
+}
+.function-container{
+    width: 49%;
+    border: 1px black solid;
+    float: right;
+    min-height: 750px;
 }
 

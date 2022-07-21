@@ -19,3 +19,22 @@
   flex-direction: column;
   border-radius: 10px;
 }
+
+
+.small-list {
+  font-size: 20px;
+  list-style: none;
+  text-align: left;
+  padding: 1px;
+}
+
+.box-text {
+  font-size: 20px;
+  line-height: 100% !important;
+}
+
+.close-box {
+  float: right;
+  cursor: no-drop;
+  margin: 5px;
+}

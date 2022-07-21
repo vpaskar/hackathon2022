@@ -3,6 +3,7 @@ import Xarrow from 'react-xarrows';
 
 //{props: {line, setSelected, selected}}
 export default ({ setSelected, selected, line: { props } }) => {
+  console.log(props);
   const [state, setState] = useState({ color: 'coral' });
   const defProps = {
     passProps: {
